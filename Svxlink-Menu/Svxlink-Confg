@@ -705,13 +705,13 @@ Advanced_Menu() {
       	    TARGETMENUID=1
       	    ;;
       Update-menu)
-			git clone https://github.com/kb3vgw/SVXLink-Custom.git
-			chmod +x  SVXLink-Custom/SVXCard-Menu/SVXCard-Pi-Config
-			cp -r SVXLink-Custom/SVXCard-Menu/SVXCard-Pi-Config /usr/bin
+			git clone https://github.com/kb3vgw/Svxlink-Custom.git
+			chmod +x  Svxlink-Custom/Svxlink-Menu/Svxlink-Config 
+			cp -r Svxlink-Custom/Svxlink-Menu/Svxlink-Config  /usr/bin
             rm -rf SVXLink-Custom
-            printf "Sleeping 5 seconds before reloading Svxink_config\n" &&
+            printf "Sleeping 5 seconds before reloading Svxlink_Config\n" &&
             sleep 5 &&
-            exec SVXCard-Pi-Config
+            exec Svxlink-Config
             #Return to This Menu
             TARGETMENUID=1
             ;;
