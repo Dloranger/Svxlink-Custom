@@ -1,0 +1,2411 @@
+#!/bin/bash
+{
+#adding translation
+import locale
+from locale import gettext as _
+#locale.bindtextdomain('drawers', '/opt/extras.ubuntu.com/drawers/share/locale')
+#locale.textdomain('drawers')
+
+# Disacle CTL C (Disable CTL-C so you can not escape the menu)
+trap "" SIGTSTP
+trap "" 2
+
+# Reassign ctl+d to ctl+_
+stty eof  '^_'
+
+#Exit path for non-root logins.
+if (( UID != 0 )); then
+	clear
+	echo -e "\n ERROR: You do not have root privileges.\n Please login as root, or, use:\n sudo Svxlink-PI-Config\n"
+		exit
+fi
+
+calc_wt_size() {
+  # NOTE: it's tempting to redirect stderr to /dev/null, so supress error
+  # output from tput. However in this case, tput detects neither stdout or
+  # stderr is a tty and so only gives default 80, 24 values
+  WT_HEIGHT=17
+  WT_WIDTH=$(tput cols)
+
+  if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 60 ]; then
+    WT_WIDTH=80
+  fi
+
+  if [ "$WT_WIDTH" -gt 178 ]; then
+    WT_WIDTH=120
+  fi
+
+  WT_MENU_HEIGHT=$((WT_HEIGHT-7))
+}
+
+Info_Input_Not_Valid_Integer(){
+	whiptail --title "Invalid Value" --msgbox "$OPTION is an invalid value. No changes have been applied" --backtitle "$WHIP_BACKTITLE" 10 60
+}
+
+# Main Menu Logic
+TARGETMENUID=0
+EXITONBACK=0
+TEXT_MENU_BACK="Back"
+
+#Grab target MENU INDEX (valid interger)
+if [[ $1 =~ ^-?[0-9]+$ ]]; then
+	TARGETMENUID=$1
+fi
+
+#Exit when going back to previous menu?
+if [[ $2 =~ ^-?[0-9]+$ ]]; then
+	EXITONBACK=$2
+	TEXT_MENU_BACK="Back"
+fi
+
+WHIP_BACKTITLE='Svxlink Amature Radio Repeater Interface System'
+WHIP_TITLE='Svxlink Amature Radio Repeater Interface System'
+WHIP_QUESTION='Svxlink Amature Radio Repeater Interface System'
+
+CHOICE=0
+OPTION=0
+REBOOT_REQUIRED=0
+RESTART_SVXLINK_REQUIRED=0
+
+#Interger min/max value holders
+#MIN_VALUE=0
+#MAX_VALUE=0
+
+#### Main Menu #######
+#TARGETMENUID=0
+Main_Menu() {
+calc_wt_size
+
+#1st run info
+if [ ! -f /etc/svxlink/.1st ]; then
+first_run
+touch /etc/svxlink/.1st
+fi
+
+#Select Svxlink Audio Files
+if [ ! -f /etc/svxlink/.snds ]; then
+select_sounds
+touch /etc/svxlink/.snds
+fi
+
+#Defalt Language
+if [ ! -f /etc/svxlink/.lang ]; then
+select_language
+touch /etc/svxlink/.lang
+fi
+
+#GPIO Pins
+if [ ! -f /etc/svxlink/.gpio ]; then
+Config-GPIO
+touch /etc/svxlink/.gpio
+fi
+
+#Basic Set
+#Call Sign
+if [ ! -f /etc/svxlink/.call ]; then
+set_call_sign
+touch /etc/svxlink/.call
+fi
+
+#Main Menu Logic
+  WHIP_TITLE='---------- Svxlink Main Menu ----------'
+  OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Main Menu" --cancel-button "$TEXT_MENU_BACK" --ok-button Select --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    "1" "Setup / Configure SvxLink Repeater Sofware" \
+    "2" "Advanced Configuration Options" \
+    "3" "Information about this configuration tool" \
+    3>&1 1>&2 2>&3 || : )
+
+    CHOICE=$?
+    if (( CHOICE == 0 )); then
+      if (( OPTION == 1 )); then
+           TARGETMENUID=3
+      elif (( OPTION == 2 )); then
+           TARGETMENUID=1
+      elif (( OPTION == 3 )); then
+       whiptail --msgbox "This tool provides a straight-forward way of doing configuration of the Svxlink/Remotetrx Repeater Software. For Use with the SvxLINK Repeater Board. This is a always on Shell menu that will display everytime you login as the root user. I will make it a option for it to display for other users in the future. \
+       If you wish to be involved with this project. \
+       contact: kb3vgw@gmail.com" 20 55 1
+      else
+	       Menu_Exit
+		fi
+	 else
+	     Menu_Exit
+     fi
+}
+
+Changes_Made() {
+# Svxlink Restart Required
+if(( RESTART_SVXLINK_REQUIRED == 1 )); then
+	WHIP_TITLE=' Changes Made - Restart Svxlink Now? '
+	WHIP_QUESTION=' A Svxlink restart is required to apply your new settings.\n Would you like to restart now?'
+	whiptail --title "$WHIP_TITLE" --yesno "$WHIP_QUESTION" --defaultno --backtitle "$WHIP_BACKTITLE" 9 65
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+		#Restart
+		service Svxlink restart 
+		#clear restart required once answer yes
+		RESTART_SVXLINK_REQUIRED=0
+	fi
+fi
+}
+
+Menu_Exit(){
+	# TARGETMENUID = -1 , if we are to exit the menu
+
+	# The good old "Are you really sure" question.
+	WHIP_TITLE=' Exit Svxlink Pi Config ? '
+	WHIP_QUESTION=' Exit Svxink_config? '
+	whiptail --title "$WHIP_TITLE" --yesno "$WHIP_QUESTION" --yes-button "Ok" --no-button "Back" --defaultno --backtitle "$WHIP_BACKTITLE" 10 50
+	CHOICE=$?
+
+	#Exit
+	if (( CHOICE == 0 )); then
+		TARGETMENUID=-1
+
+        #Changes_Made() {
+        # Svxlink Restart Required
+        if(( RESTART_SVXLINK_REQUIRED == 1 )); then
+            WHIP_TITLE=' Changes Made - Restart Svxlink Now? '
+            WHIP_QUESTION=' A Svxlink restart is required to apply your new settings.\n Would you like to restart now?'
+            whiptail --title "$WHIP_TITLE" --yesno "$WHIP_QUESTION" --defaultno --backtitle "$WHIP_BACKTITLE" 9 65
+            CHOICE=$?
+            if (( CHOICE == 0 )); then
+                #Restart
+                service Svxlink restart
+            fi
+        fi
+        #}
+
+		# Reboot Required
+		if(( REBOOT_REQUIRED == 1 )); then
+			WHIP_TITLE=' Changes Made - Reboot Now? '
+			WHIP_QUESTION=' A reboot is required to apply your new settings.\n Would you like to reboot now?'
+			whiptail --title "$WHIP_TITLE" --yesno "$WHIP_QUESTION" --defaultno --backtitle "$WHIP_BACKTITLE" 9 65
+			CHOICE=$?
+			if (( CHOICE == 0 )); then
+				#Reboot
+				reboot
+			fi
+		fi
+	#Return to main menu
+	elif (( EXITONBACK == 0 )); then
+		TARGETMENUID=0
+	fi
+}
+
+Change_Password_Root(){
+
+	local PasswordRecieved=0
+
+	#1st input
+	local passw1=$(whiptail --passwordbox "Please Enter Your New Password For Root User" 8 60 --title "Change PW" 3>&1 1>&2 2>&3)
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+		((PasswordRecieved++))
+	fi
+
+	#2nd input (confirm)
+	local passw2=$(whiptail --passwordbox "Please Confirm Your New Password For Root User" 8 60 --title "Confirm PW" 3>&1 1>&2 2>&3)
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+		((PasswordRecieved++))
+	fi
+
+	#Password Mismatch
+	if [ "$passw1" != "$passw2" ]; then
+		WHIP_TITLE='Error - Password Mismatch'
+		whiptail --title "$WHIP_TITLE" --msgbox " The Passwords you have entered do not match, therefor, no changes have been applied. Please try again" 8 60
+	#Change password
+	elif (( $PasswordRecieved == 2 )); then
+		echo -e "$passw1\n$passw1" | passwd -q root
+		WHIP_TITLE='Password Applied'
+		whiptail --title "$WHIP_TITLE" --msgbox " Your new password has successfully been applied." 8 60
+	#Aborted
+	else
+		WHIP_TITLE='Password Aborted'
+		whiptail --title "$WHIP_TITLE" --msgbox " Password change has been aborted. No changes have been applied" 8 60
+	fi
+}
+
+
+Config-GPIO() {
+RESTART_SVXLINK_REQUIRED=1
+WHIP_TITLE='---------- Enable Gpio For Repeater Boards ----------'
+OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
+"Svxlink_Board" "SvxLink Repeater Board" off \
+"Arris_Board" "Arris basic interface board" off \
+"rpi2" "Raspberry pi 2 32 bit cpu" off \
+"rpi3" "Raspberrypi 3 64 bit cpu" off \
+"pine64" "Pine 64 64 bit cpu" off \
+"odroid-c1" "Odroid c1/c1+ 32 bit cpu" off \
+"odroid-c2" "Odroid c2 64 bit cpu" off \
+3>&1 1>&2 2>&3 || : )
+while read -r option; do
+    if [[ $option = @(Svxlink_Board|Arris_Board|rpi2|rpi3|pine64|odroid-c1|odroid-c2) ]]; then
+ selected=$option,
+    else
+      whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      declare -p option
+    fi
+  done <<< "$OPTION"
+selected=${selected%,}
+
+if [[ $selected == Svxlink_Board ]] ; then
+if [[ $selected == rpi2 ]] || [[ $selected == rpi3 ]] ; then
+#configure pi gpio
+printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"5 6 7 13 24 25 26 27\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"18 19\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"12 16 17 20 21 22 23\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_LOW=/' "s/GPIO_OUT_LOW=.*/GPIO_OUT_LOW=\"\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio19/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio16/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio18/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio17/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/GPIO_RELAY_1=/' "s/GPIO_RELAY_1=.*/GPIO_RELAY_1=20/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
+printf '%s\n' '/GPIO_RELAY_2=/' "s/GPIO_RELAY_2=.*/GPIO_RELAY_2=21/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
+printf '%s\n' '/GPIO_RELAY_3=/' "s/GPIO_RELAY_3=.*/GPIO_RELAY_3=22/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
+printf '%s\n' '/GPIO_RELAY_4=/' "s/GPIO_RELAY_4=.*/GPIO_RELAY_4=23/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
+fi
+fi
+
+if [[ $selected == ARRIS_Basic ]] ; then
+if [[ $selected == rpi2 ]] || [[ $selected == rpi3 ]] || [[ $selected == pine64 ]] ; then
+#configure pi gpio
+printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"7 24\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"18 19\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"17 23\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_LOW=/' "s/GPIO_OUT_LOW=.*/GPIO_OUT_LOW=\"\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio19/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio16/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio18/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio17/" w q | ex /etc/svxlink/Svxlink.conf      
+fi
+
+if [[ $selected == odroid-c1 ]] ; then
+#configure odroid c1/c1+ gpio
+printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"87 102\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"87 102\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"88 104\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_LOW=/' "s/GPIO_OUT_LOW=.*/GPIO_OUT_LOW=\"\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio19/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio16/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio18/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio17/" w q | ex /etc/svxlink/Svxlink.conf
+fi
+
+if [[ $selected == odroid-c2 ]] ; then
+#configure Odroid C2 gpio
+printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_LOW=/' "s/GPIO_OUT_LOW=.*/GPIO_OUT_LOW=\"\"/" w q | ex /etc/svxlink/Svxlink_gpio.conf
+printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio/" w q | ex /etc/svxlink/Svxlink.conf
+printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio/" w q | ex /etc/svxlink/Svxlink.conf      
+fi
+fi
+}
+
+set_call_sign() {
+    OPTION=$(whiptail --inputbox "Enter Your CallSign" 8 60 --title "Set Your Call Sign" 3>&1 1>&2 2>&3)
+    exitstatus=$?
+if [ $exitstatus = 0 ]; then
+	HOSTNAME_CURRENT=$(cat /etc/hostname)
+	HOSTNAME_NEW=$OPTION
+	sed -i "s/$HOSTNAME_CURRENT/$HOSTNAME_NEW-Repeater/g" /etc/hosts
+	sed -i "s/$HOSTNAME_CURRENT/$HOSTNAME_NEW-Repeater/g" /etc/hostname
+	  declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+  done < /etc/svxlink/Svxlink.conf
+
+  logics=${config[GLOBAL.LOGICS]}
+
+  printf '%s\n' "/\[$logics]/" '/CALLSIGN=/' "s/CALLSIGN=.*/CALLSIGN=$OPTION/" w q | ex /etc/svxlink/Svxlink.conf
+  WHIP_TITLE='CallSign Applied'
+  whiptail --title "$WHIP_TITLE" --msgbox " Your new Repeater Callsign has successfully been applied." 8 60
+else
+  WHIP_TITLE='CallSign Aborted'
+  whiptail --title "$WHIP_TITLE" --msgbox " CallSign change has been aborted. No changes have been applied" 8 60
+fi
+}
+
+select_language() {
+  	WHIP_TITLE='---------- Select Default Language ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+    "en_US" "Enable English Language" ON \
+    "fr_FR" "Enable French Language" OFF \
+    "sv_SE" "Enable Swediash Language" OFF \
+    3>&1 1>&2 2>&3 || : )
+
+  while read -r option; do
+    if [[ $option = @(en_US|fr_FR|sv_SE) ]]; then
+      selected+=$option,
+    else
+      whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      declare -p option option
+    fi
+  done <<< "$OPTION"
+
+  selected=${selected%,}
+
+   printf '%s\n' '/DEFAULT_LANG=/' "s/DEFAULT_LANG=.*/DEFAULT_LANG=$selected/" w q  | ex /etc/svxlink/Svxlink.conf
+   printf '%s\n' '/\[ModuleEchoLink]/' '/DEFAULT_LANG=/' "s/DEFAULT_LANG=.*/DEFAULT_LANG=$selected/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+
+}
+
+select_sounds() {
+    WHIP_TITLE='---------- Select Default Language ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 25 50 10 \
+    "English" " Enable English Sounds  " ON \
+    "French" " Enable French Sounds " OFF \
+    "Swedish" " Enable Swediash Sounds" OFF \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      English) wget --no-check-certificate https://github.com/kb3vgw/Svxlink-sounds-en_US-laura/releases/download/15.11.2/Svxlink-sounds-en_US-laura-16k-15.11.2.tar.bz2
+         tar xjvf Svxlink-sounds-en_US-laura-16k-15.11.2.tar.bz2
+         mv en_US-laura-16k /usr/share/Svxlink/sounds/en_US
+         rm Svxlink-sounds-en_US-laura-16k-15.11.1.tar.bz2
+         #Make and Link Custome Sound Dir
+         mkdir -p /root/sounds_en/Custom_Courtesy_Tones
+         ln -s /root/sounds_en/Custom_Courtesy_Tones /usr/share/Svxlink/sounds/Custom_Courtesy_Tones
+         mkdir -p /root/sounds_en/Custom_Identification
+         ln -s /root/sounds_en/Custom_identification /usr/share/Svxlink/sounds/en_US/Custom_Identification
+         ;;
+      French) wget https://github.com/kb3vgw/svxlink-sounds-fr_FR-justine/releases/download/15.11.1/svxlink-sounds-fr_FR-justine-16k_15.11.1.tar.bz2
+         tar xjvf svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
+         mv fr_FR-heather-16k /usr/share/Svxlink/sounds/fr_FR
+         rm svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
+         #Make and Link Custome Sound Dir
+	     mkdir -p /root/sounds_fr/Custom_Courtesy_Tones
+	     ln -s /root/sounds_fr/Custom_Courtesy_Tones /usr/share/Svxlink/sounds/Custom_Courtesy_Tones
+	     mkdir -p /root/sounds_fr/Custom_Identification
+	     ln -s /root/sounds_fr/Custom_identification /usr/share/Svxlink/sounds/fr_FR/Custom_Identification
+         ;;
+      Swedish) wget https://github.com/kb3vgw/Svxlink-sounds-sv_SE-elin/releases/download/15.11.2/Svxlink-sounds-sv_SE-elin-16k-15.11.2.tar.bz2
+	     tar xjvf Svxlink-sounds-sv_SE-elin-16k-15.11.2.tar.bz2
+	     mv sv_SE-heather-16k /usr/share/Svxlink/sounds/sv_SE
+	     rm Svxlink-sounds-se_SV-elin-16k-15.11.2.tar.bz2
+	     #Make and Link Custome Sound Dir
+	     mkdir -p /root/sounds_se/Custom_Courtesy_Tones
+	     ln -s /root/sounds_se/Custom_Courtesy_Tones /usr/share/Svxlink/sounds/Custom_Courtesy_Tones
+	     mkdir -p /root/sounds_se/Custom_Identification
+	     ln -s /root/sounds_se/Custom_identification /usr/share/Svxlink/sounds/se_SV/Custom_Identification
+         ;;
+    esac
+    fi
+}
+
+_whiptail() {
+    local args combo cards channel1 channel2 tmp
+    args=()
+    lsmod | grep -q snd_foo
+	if [[ $? = 1 ]]; then
+	cards=0
+	fi
+	if [[ $? = 2 ]]; then
+	cards=01
+	fi
+	if [[ $? = 3 ]]; then
+	cards=0.2
+	fi
+	if [[ $? = 4 ]]; then
+	cards=0..3
+	fi
+	
+    for combo in {$cards}:{Left,Right}:{Left,Right}; do
+        IFS=: read -r cards channel1 channel2 <<< "$combo"
+        printf -v tmp 'Card%d-%c%c' "$cards" "$channel1" "$channel2"
+        args+=("$tmp" " Mic Channel $channel1 / Sound Channel $channel2 " OFF)
+    done
+    whiptail --title "$WHIP_TITLE" \
+        --radiolist "Make a Selection" \
+        --cancel-button "$TEXT_MENU_BACK" \
+        --backtitle "$WHIP_BACKTITLE" 20 70 10 \
+        "${args[@]}"
+} 3>&1 1>&2 2>&3
+
+select_rxtx() {
+  WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
+  OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+    "Rx1" " Select Reciever 1 Port" ON \
+    "Tx1" "Select Transmiter1 Port" OFF \
+    "LinkRX" "Select Link Reciever port" OFF \
+    "LinkTX" "Select Link Transmiter port" OFF \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPT1" in
+      Rx1) set "$OPT1"
+         ;;
+      Tx1) set "$OPT1"
+         ;;
+      LinkRx) set "$OPT1"
+         ;;
+      LinkTx) set "$OPT1"
+         ;;
+    esac
+    fi
+}
+
+set_repeater_soundcard() {
+  local option dev rx=0 tx=0
+  WHIP_TITLE='---------- Select Repeater Sound Card ----------'
+  option=$(_whiptail)
+  if [[ $option != Cards* ]]; then
+    echo "back?"
+    return
+  fi
+  dev=${option:4:1}
+  [[ ${option:6:1} = R ]] && rx=1
+  [[ ${option:7:1} = R ]] && tx=1
+  cat  <<! | ex /etc/svxlink/Svxlink.conf #<<!
+/\[Rx1\]/
+/^AUDIO_DEV=/s/.*/AUDIO_DEV=alsa:plughw:$dev/
+/\[Rx1\]/
+/^AUDIO_CHANNEL=/s/.*/AUDIO_CHANNEL=$rx/
+/\[Tx1\]/
+/^AUDIO_DEV=/s/.*/AUDIO_DEV=alsa:plughw:$dev/
+/\[Tx1\]/
+/^AUDIO_CHANNEL=/s/.*/AUDIO_CHANNEL=$tx/
+w
+q
+!
+}
+
+set_linkport_soundcard() {
+  local option dev rx=0 tx=0
+  WHIP_TITLE='---------- Select LinkPort Sound Card ----------'
+  option=$(_whiptail)
+  if [[ $option != Cards* ]]; then
+    echo "back?"
+    return
+  fi
+  dev=${option:4:1}
+  [[ ${option:6:1} = R ]] && rx=1
+  [[ ${option:7:1} = R ]] && tx=1
+  cat  <<! | ex /etc/svxlink/Svxlink.conf #<<!
+/\[LinkRX\]/
+/^AUDIO_DEV=/s/.*/AUDIO_DEV=alsa:plughw:$dev/
+/\[LinkRx\]/
+/^AUDIO_CHANNEL=/s/.*/AUDIO_CHANNEL=$rx/
+/\[LinkTx\]/
+/^AUDIO_DEV=/s/.*/AUDIO_DEV=alsa:plughw:$dev/
+/\[LinkTx\]/
+/^AUDIO_CHANNEL=/s/.*/AUDIO_CHANNEL=$tx/
+w
+q
+!
+}
+
+set_qso() {
+#QSO_RECORDER=8:QsoRecorder
+    WHIP_TITLE='---------- SvxLink QSO Recorder Option ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+     "Enable_QSO" " Enable QSO Recorder " OFF \
+     "Disable_QSO" " Enable QSO Recorder (Default) " OFF \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    declare -A config=()
+     while IFS='=' read -r key value; do
+       if [[ -z $value && $key = "["*"]" ]]; then
+        section=${key#\[} section=${section%]}
+        continue
+       else
+         if [[ -z $key || $key = \#* ]]; then
+           continue
+         fi
+       fi
+       config[$section.$key]=$value
+    done < /etc/svxlink/Svxlink.conf
+      case "$OPTION" in
+      Enable_QSO)  printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/QSO_RECORDER=/' 's/#QSO_RECORDER=.*/QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/Svxlink.conf
+            ;;
+      Disable_QSO)  printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/QSO_RECORDER=/' 's/QSO_RECORDER=.*/#QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/Svxlink.conf
+            ;;
+     esac
+    fi
+}
+
+check_Frn() {
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+if  [[ ${config[$logics.MODULES]} = *,ModuleFrn,* ]]; then
+    frn_setup; else whiptail --title "FreeRadio Network Module" --msgbox " ModuleFrn Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
+fi
+}
+
+Check_Echolink() {
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+
+if  [[ ",${config[$logics.MODULES]}," = *,ModuleEchoLink,* ]]; then
+    Echolink_Config; else whiptail --title "Echolink Module" --msgbox " ModuleEchoLink Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
+fi
+}
+
+Check_Relay() {
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+if  [[ ${config[$logics.MODULES]} = *,ModuleRemoteRelay,* ]]; then
+    RemoteRelay_setup; else whiptail --title "Remote Relay Module" --msgbox " ModuleRemoteRelay Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
+fi
+}
+
+Check_Weather() {
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+if  [[ ${config[$logics.MODULES]} = *,ModuleWeatherSatation,* ]]; then
+   WeatherStation_setup; else whiptail --title "WeatherStation Module" --msgbox " ModuleWeatherStation Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
+fi
+}
+
+Check_SSTV() {
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+if  [[ ${config[$logics.MODULES]} = *,ModuleTclSSTV,* ]]; then
+    sstv_setup; else whiptail --title "TclSSTV Module" --msgbox " ModuleTclSSTV Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
+fi
+}
+
+onboard_snd_pi() {
+ # Enable audio (loads snd_bcm2835)
+ sed -i /boot/config.txt -e"s#\#dtparam=audio=on#dtparam=audio=on#"
+ sed -i /etc/modules -e"s#\#snd-bcm2835#snd-bcm2835#"
+}
+
+first_run() {
+whiptail --msgbox "\
+
+                          Welcome to Svxlink
+
+              " Amature Radio Repeater Interface System "
+
+ Upon First Run of this script you will be asked to enter information,
+
+ and you will be asked to select and install default sounds for 1 of 3
+
+ currenly supported languages. English, French, and Swedish.
+
+ If you wish to have you Language supported there is currently 2 options.
+
+    1) use the following site and the txt files from the english sounds
+       and translate and record them and forward them on.
+
+       https://acapela-box.com/AcaBox/index.php
+
+       Current voice now used is Laura
+
+    2) Pay us to get them translated and recorded and converted into a
+       sounds pkg and added to the menu script.
+
+ The Menu in this install is ment to help configuring and maintining your
+
+ Svxlink system easier.if you wish to contribute please feel free to
+
+ contact me kb3vgw@gmail.com with any input you have that might help.
+
+" 38 80 1
+}
+
+#TARGETMENUID=1
+# Advanced system options
+Advanced_Menu() {
+	TARGETMENUID=0
+	WHIP_TITLE='---------- SvxLink Advanced Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+		"International" "Configure Keyboard TimeZone Locale" \
+    	"Networking" "Configure Netorking Interfaces" \
+    	"Update-menu" "Update this tool to the latest version" \
+    	"Update-Clock" "Update Hardware Clock" \
+    	"Bash-Shell" "Drop to system command shell Bash" \
+    	"Passwords" "Change Root User Passwords" \
+    	"Reboot" "Reboot System" \
+    	"Power-Off" "Power Off System" \
+    	"Gpsd-Setup" "Enable and Configure Gpsd for GPS and Time" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      International)
+            International_Menu
+            #Return to This Menu
+      	    TARGETMENUID=1
+      	    ;;
+      Networking)
+            Svxink_Networking_Menu
+            #Return to This Menu
+      	    TARGETMENUID=1
+      	    ;;
+      Update-menu)
+			git clone https://github.com/kb3vgw/SVXLink-Custom.git
+			chmod +x  SVXLink-Custom/SVXCard-Menu/SVXCard-Pi-Config
+			cp -r SVXLink-Custom/SVXCard-Menu/SVXCard-Pi-Config /usr/bin
+            rm -rf SVXLink-Custom
+            printf "Sleeping 5 seconds before reloading Svxink_config\n" &&
+            sleep 5 &&
+            exec SVXCard-Pi-Config
+            #Return to This Menu
+            TARGETMENUID=1
+            ;;
+      Update-Clock)
+            hwclock -w &
+            #Return to This Menu
+            TARGETMENUID=1
+            ;;
+      Passwords)
+            Change_Password_Root
+            #Return to This Menu
+            TARGETMENUID=1
+            ;;
+      Reboot)
+            reboot; kill -HUP "$(pgrep -s 0 -o)"
+            #Return to This Menu
+            TARGETMENUID=5
+            ;;
+      Power-Off)
+            poweroff; kill -HUP "$(pgrep -s 0 -o)"
+            #Return to This Menu
+            TARGETMENUID=5
+            ;;
+      Bash-Shell)
+            /bin/bash
+            #Return to This Menu
+            TARGETMENUID=1
+            ;;
+      Gpsd-Setup)
+            WHIP_TITLE='---------- Select Uart / USB Port For GPS----------'
+    		OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+    		"ttyS0" " Select Uart Port 0 " OFF \
+    		"ttyS1" " Select Uart Port 1 " OFF \
+    		"ttyS2" " Select Uart Port 2 " OFF \
+    		"ttyS3" " Select Uart Port 3 " OFF \
+    		"ttyUSB0" " Select USB Port 0 " OFF \
+    		"ttyUSB1" " Select USB Port 1 " OFF \
+    		"ttyUSB2" " Select USB Port 2 " OFF \
+    		"ttyUSB3" " Select USB Port 3 " OFF \
+    		3>&1 1>&2 2>&3)
+
+      		while read -r option; do
+    		if [[ $option = @(ttyS0|ttyS1|ttyS2|ttyS3|ttyUSB0|ttyUSB1|ttyUSB2|ttyUSB3) ]]; then
+      			selected+=$option,
+    		else
+      			whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      			declare -p option option
+    		fi
+			done <<< "$OPTION"
+
+	    selected=${selected%,}
+
+	    printf '%s\n' '/DEVICES=/' "s/DEVICES=.*/DEVICES=\"$selected\"/" w q | ex /etc/default/gpsd
+	    touch /usr/bin/set-time.sh
+	    cat > /usr/bin/set-time.sh << DELIM
+gpsdate -b 4800 /dev/$selected
+DELIM
+	    chmod +x /usr/bin/set-time.sh
+            systemctl enable gpsd
+            service gpsd start
+            #Return to This Menu
+      	    TARGETMENUID=1
+      	    ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=2
+# Internationalisation menu
+Intl_Menu() {
+	TARGETMENUID=0
+  	WHIP_TITLE='---------- Internationalisation Menu ----------'
+  	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"Locale" "Set up language and regional settings to match your location" \
+    	"Timezone" "Set up timezone to match your location" \
+    	"Keyboard" "Set the keyboard layout to match your keyboard" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      Locale) 
+            REBOOT_REQUIRED=1
+            dpkg-reconfigure locales
+            #Return to This Menu
+            TARGETMENUID=2
+            ;;
+      Timezone)
+            #REBOOT_REQUIRED=1
+            dpkg-reconfigure tzdata
+            #Return to This Menu
+            TARGETMENUID=2
+            ;;
+      Keyboard)
+            REBOOT_REQUIRED=1
+            dpkg-reconfigure console-data
+            printf "Reloading keymap. This may take a short while\n" &&
+            service keyboard-setup restart
+            udevadm trigger --subsystem-match=input --action=change
+            return 0
+            #Return to This Menu
+            TARGETMENUID=2
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=3
+# SvxLink Menus
+Svxlink_Main_Menu() {
+	TARGETMENUID=0
+	WHIP_TITLE='---------- SxvLink Main Config Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+	"SvxLink-Config" "SxvLink Configuration Menu" \
+    	"SvxLink-Modules" "SxvLink Modules Menu" \
+    	"SvxLink-Advanced" "SxvLink Advanced Options Menu" \
+    	"SvxLink-Help" "Svxlink Help Menu" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      SvxLink-Config)
+            Svxlink_Config_Menu
+            #Return to This Menu
+            TARGETMENUID=3
+            ;;
+      SvxLink-Modules)
+            Svxlink_Modules_Menu
+            #Return to This Menu
+            TARGETMENUID=3
+            ;;
+      SvxLink-Advanced)
+            Svxlink_Advanced_Menu
+            #Return to This Menu
+            TARGETMENUID=3
+            ;;
+      SvxLink-Help) Svxlink_Help_Menu
+            #Return to This Menu
+            TARGETMENUID=3
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=4
+# SxvLink Config Menus
+Svxlink_Config_Menu() {
+	TARGETMENUID=0
+   
+    OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+	"CallSign" "Set/Change Repeater Call Sign" \
+	"Modules" "Enable/Disable SvxLink Modules" \
+	"Language" "Set/Select SxvLink Default Language" \
+	"RxTx-SoundCard" "Select RX TX Soundcard and Configure" \
+	"Link-SoundCard" "Select Link Port Soundcard and Configure" \
+	"Ctcss-Tone" "Enable/Disable and Select CTCSS tone" \
+	"Ctcss-Options" "Set extra CTCSS Tone options" \
+	"Courtesy-Tone" "Svxlink Courtesy Tone Menu" \
+	"CT-Timer" "Set Courtesy Tone Timers" \
+	"Voter" "Svxlink Voter Setup" \
+	"QsoRecorder" "Configure qso recorder settings" \
+	"Wbrt" "Configure Web/RTLusb settings" \
+	"Ru" "Configure RtlUSB Reciever settings" \
+	"FX-Gain" "Configure FX Gain" \
+	"LocationInfo" "Set Repeater Location Information" \
+        3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      CallSign)
+            RESTART_SVXLINK_REQUIRED=1
+            set_call_sign
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Language)
+            RESTART_SVXLINK_REQUIRED=1
+            select_language
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Modules)
+        RESTART_SVXLINK_REQUIRED=1
+        WHIP_TITLE='---------- Enable\/Disable SvxLink Modules ----------'
+	OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
+	"ModuleHelp" "Help Module" ON \
+	"ModuleParrot" "Parrot Module" ON  \
+	"ModuleEchoLink" "Echolink Module" ON \
+	"ModuleFrn" "FreeRadio NetWork Module" ON \
+	"ModuleTclVoiceMail" "TclVoiceMail Module" OFF \
+	"ModuleMetarInfo" "MetarInfo Module" OFF \
+	"ModuleDtmfRepeater" "DtmfRepeater Module" ON \
+	"ModulePropagationMonitor" "PropagationMonitor Module" OFF \
+	"ModuleSelCallEnc" "SelCallEnc Module" OFF \
+	"ModuleRemoteRelay" "RemoteRelay Module" ON \
+	"ModuleTclSSTV" "SlowScan TV Module" ON \
+	3>&1 1>&2 2>&3 || : )
+  	while read -r option; do
+    		if [[ $option = Module@(Help|Parrot|EchoLink|Frn|TclVoiceMail|MetarInfo|DtmfRepeater|PropagationMonitor|SelCallEnc|RemoteRelay|TclSSTV) ]]; then
+      			selected+=$option,
+    		else
+      			whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      			declare -p option option
+    		fi
+  		done <<< "$OPTION"
+  		declare -A config=()
+  		while IFS='=' read -r key value; do
+    	if [[ -z $value && $key = "["*"]" ]]; then
+      	  section=${key#\[} section=${section%]}
+      	  continue
+    	else
+    	    if [[ -z $key || $key = \#* ]]; then
+		    continue
+		  fi
+		fi
+		config[$section.$key]=$value
+		done < /etc/svxlink/Svxlink.conf
+		logics=${config[GLOBAL.LOGICS]}
+			selected=${selected%,}
+		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Ctcss-Tone)
+            RESTART_SVXLINK_REQUIRED=1
+              select_rxtx
+  WHIP_TITLE='---------- Select CTCSS Tone ----------'
+  OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+      "67.0" " Set CTCSS Tone of 67.0 " OFF \
+      "69.3" " Set CTCSS Tone of 69.3 " OFF \
+      "71.0" " Set CTCSS Tone of 71.0 " OFF \
+      "71.9" " Set CTCSS Tone of 71.9 " OFF \
+      "74.4" " Set CTCSS Tone of 74.4 " OFF \
+      "77.0" " Set CTCSS Tone of 77.0 " OFF \
+      "79.7" " Set CTCSS Tone of 79.7 " OFF \
+      "82.5" " Set CTCSS Tone of 82.5 " OFF \
+      "85.4" " Set CTCSS Tone of 85.4 " OFF \
+      "88.5" " Set CTCSS Tone of 88.5 " OFF \
+      "91.5" " Set CTCSS Tone of 91.5 " OFF \
+      "94.8" " Set CTCSS Tone of 94.8 " OFF \
+      "97.4" " Set CTCSS Tone of 97.4 " OFF \
+      "100.0" " Set CTCSS Tone of 100.0 " OFF \
+      "103.5" " Set CTCSS Tone of 103.5 " OFF \
+      "107.2" " Set CTCSS Tone of 107.2 " OFF \
+      "110.9" " Set CTCSS Tone of 110.9 " OFF \
+      "114.8" " Set CTCSS Tone of 114.8 " OFF \
+      "118.8" " Set CTCSS Tone of 118.8 " OFF \
+      "123.0" " Set CTCSS Tone of 123.0 " OFF \
+      "127.3" " Set CTCSS Tone of 127.3 " OFF \
+      "131.8" " Set CTCSS Tone of 131.8 " OFF \
+      "136.5" " Set CTCSS Tone of 136.5 " OFF \
+      "141.3" " Set CTCSS Tone of 141.3 " OFF \
+      "146.2" " Set CTCSS Tone of 146.2 " OFF \
+      "151.4" " Set CTCSS Tone of 151.4 " OFF \
+      "156.7" " Set CTCSS Tone of 156.7 " OFF \
+      "159.8" " Set CTCSS Tone of 159.8 " OFF \
+      "162.2" " Set CTCSS Tone of 162.2 " OFF \
+      "165.5" " Set CTCSS Tone of 165.5 " OFF \
+      "167.9" " Set CTCSS Tone of 167.9 " OFF \
+      "171.3" " Set CTCSS Tone of 171.3 " OFF \
+      "173.8" " Set CTCSS Tone of 173.8 " OFF \
+      "177.3" " Set CTCSS Tone of 177.3 " OFF \
+      "179.9" " Set CTCSS Tone of 179.9 " OFF \
+      "183.5" " Set CTCSS Tone of 183.5 " OFF \
+      "186.2" " Set CTCSS Tone of 186.2 " OFF \
+      "189.9" " Set CTCSS Tone of 189.9 " OFF \
+      "192.8" " Set CTCSS Tone of 192.8 " OFF \
+      "196.6" " Set CTCSS Tone of 196.6 " OFF \
+      "199.5" " Set CTCSS Tone of 199.5 " OFF \
+      "203.5" " Set CTCSS Tone of 203.5 " OFF \
+      "206.5" " Set CTCSS Tone of 206.5 " OFF \
+      "210.7" " Set CTCSS Tone of 210.7 " OFF \
+      "218.1" " Set CTCSS Tone of 218.1 " OFF \
+      "225.7" " Set CTCSS Tone of 225.7 " OFF \
+      "229.1" " Set CTCSS Tone of 229.1 " OFF \
+      "223.6" " Set CTCSS Tone of 233.6 " OFF \
+      "241.8" " Set CTCSS Tone of 241.8 " OFF \
+      "250.3" " Set CTCSS Tone of 250.3 " OFF \
+      "254.1" " Set CTCSS Tone of 254.1 " OFF \
+    3>&1 1>&2 2>&3 || : )
+  while read -r option; do
+    if [[ $option = @(67.0|69.3|71.9|74.4|77.0|79.7|82.5|85.4|88.5|91.5|94.8|97.4|100.0|103.5|107.2|110.9|114.8|118.8|123.0|127.3|131.8|136.5|141.3|146.2|151.4|156.7|162.2|167.9|173.8|179.9|186.2|192.8|203.5|206.5|210.7|218.1|225.7|229.1|233.6|241.8|250.3|254.1) ]]; then
+      selected=$option,
+    else
+      whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      declare -p option
+    fi
+  done <<< "$OPTION"
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+selected=${selected%,}
+    printf '%s\n' "/\[$OPTION]/" '/CTCSS_FQ=/' "s/CTCSS_FQ=.*/CTCSS_FQ=$selected/" w q  | ex /etc/svxlink/Svxlink.conf
+    printf '%s\n' "/\[$logics]/" '/REPORT_CTCSS=/' "s/REPORT_CTCSS=.*/REPORT_CTCSS=$selected/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Ctcss-Options)
+            RESTART_SVXLINK_REQUIRED=1
+            CTCSS_MODE=""
+			CTCSS_SNR_OFFSET=""
+			CTCSS_OPEN_THRESH=""
+			CTCSS_CLOSE_THRESH=""
+			CTCSS_BPF_LOW=""
+			CTCSS_BPF_HIGH=""
+			CTCSS_LEVEL=""
+			TX_CTCSS=""
+		{
+		# Store data to $VALUES variable
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle "CTCSS Options Configuration" --title "CTCSS Options" --form "CTCSSOPT" 20 70 0 \
+			"CTCSS_MODE:"           1 1    "$CTCSS_MODE"         1 21 3 0 \
+			"CTCSS_SNR_OFFSET:"     2 1    "$CTCSS_SNR_OFFSET"   2 21 3 0 \
+			"CTCSS_OPEN_THRESH:"    3 1    "$CTCSS_OPEN_THRESH"  3 21 3 0 \
+			"CTCSS_CLOSE_THRESH:"   4 1    "$CTCSS_CLOSE_THRESH" 4 21 3 0 \
+			"CTCSS_BPF_LOW:"        5 1    "$CTCSS_BPF_LOW"      5 21 3 0 \
+			"CTCSS_BPF_HIGH:"       6 1    "$CTCSS_BPF_HIGH"     6 21 3 0 \
+			"CTCSS_LEVEL:"          7 1    "$CTCSS_LEVEL"        7 21 3 0 \
+			"TX_CTCSS:"             8 1    "$TX_CTCSS"           8 21 15 0 \
+		2>&1 1>&3); } 3>&1
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_MODE=/' "s/CTCSS_MODE=.*/CTCSS_MODE=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_SNR_OFFSET=/' "s/CTCSS_SNR_OFFSET=.*/CTCSS_SNR_OFFSET=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_OPEN_THRESH=/' "s/CTCSS_OPEN_THRESH=.*/CTCSS_OPEN_THRESH=${array[2]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_CLOSE_THRESH=/' "s/CTCSS_CLOSE_THRESH=.*/CTCSS_CLOSE_THRESH=${array[3]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_BPF_LOW=/' "s/CTCSS_BPF_LOW=.*/CTCSS_BPF_LOW=${array[4]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_BPF_HIGH=/' "s/CTCSS_BPF_HIGH=.*/CTCSS_BPF_HIGH=${array[5]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[Tx1]/' '/CTCSS_LEVEL=/' "s/CTCSS_LEVEL=.*/CTCSS_LEVEL=${array[6]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' "/\${config[GLOBAL.LOGICS]}\]/" '/TX_CTCSS=/' "s/TX_CTCSS=.*/TX_CTCSS=${array[7]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      RxTx-SoundCard)
+            RESTART_SVXLINK_REQUIRED=1
+			set_repeater_soundcard
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Link-SoundCard)
+            RESTART_SVXLINK_REQUIRED=1
+			set_linkport_soundcard
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Voter)
+            RESTART_SVXLINK_REQUIRED=1
+            RECEIVERS=""
+			TRANSMITTERS=""
+			VOTING_DELAY=""
+			BUFFER_LENGTH=""
+			REVOTE_INTERVAL=""
+			HYSTERESIS=""
+			SQL_CLOSE_REVOTE_DELAY=""
+			RX_SWITCH_DELAY=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Voter Configuration" --title "Voter Setup" --form "Voter" 20 70 0 \
+			"RECEIVERS:"                 1 1    "$RECEIVERS"                1 15 10 0 \
+			"TRANSMITTERS:"              2 1    "$TRANSMITTERS"              2 15 10 0 \
+			"VOTING_DELAY:"              3 1    "$VOTING_DELAY"             3 15 10 0 \
+			"BUFFER_LENGTH:"             4 1    "$BUFFER_LENGTH"            4 15 10 0 \
+			"REVOTE_INTERVAL:"           5 1    "$REVOTE_INTERVAL"          5 15 10 0 \
+			"HYSTERESIS:"                6 1    "$HYSTERESIS"               6 15 10 0 \
+			"SQL_CLOSE_REVOTE_DELAY:"    7 1    "$SQL_CLOSE_REVOTE_DELAY"   7 15 10 0 \
+			"RX_SWITCH_DELAY:"           8 1    "$RX_SWITCH_DELAY"          8 15 10 0 \
+		2>&1 1>&3); } 3>&1
+			printf '%s\n' '/\[Voter]/' '/RECEIVERS=/' "s/RECEIVERS=.*/RECEIVERS=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[MultiTx]/' '/TRANSMITTERS=/' "s/TRANSMITTERS=.*/TRANSMITTERS=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[Voter]/' '/VOTING_DELAY=/' "s/VOTING_DELAY=.*/VOTING_DELAY=${array[2]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[Voter]/' '/BUFFER_LENGTH=/' "s/BUFFER_LENGTH=.*/BUFFER_LENGTH=${array[3]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[Voter]/' '/REVOTE_INTERVAL=/' "s/REVOTE_INTERVAL=.*/REVOTE_INTERVAL=${array[4]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[Voter]/' '/HYSTERESIS=/' "s/HYSTERESIS=.*/HYSTERESIS=${array[5]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[Voter]/' '/SQL_CLOSE_REVOTE_DELAY=/' "s/SQL_CLOSE_REVOTE_DELAY=.*/SQL_CLOSE_REVOTE_DELAY=${array[6]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[Voter]/' '/RX_SWITCH_DELAY=/' "s/RX_SWITCH_DELAY=.*/RX_SWITCH_DELAY=${array[7]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      QsoRecorder)
+            RESTART_SVXLINK_REQUIRED=1
+            MIN_TIME=""
+			MAX_TIME=""
+			SOFT_TIME=""
+			MAX_DIRSIZE=""
+			DEFAULT_ACTIVE=""
+			TIMEOUT=""
+			QSO_TIMEOUT=""
+			ENCODER_CMD=$(/usr/bin/oggenc -Q \"%f\" && rm \"%f\")
+			{
+			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Qso Recorder Configuration" --title "QsoRecorder Setup" --form "QsoRecorder" 20 70 0 \
+        		"MIN_TIME:"          1 1    "$MIN_TIME"           1 15 10 0 \
+        		"MAX_TIME:"          2 1    "$MAX_TIME"           2 15 10 0 \
+        		"SOFT_TIME:"         3 1    "$SOFT_TIME"          3 15 10 0 \
+        		"MAX_DIRSIZE:"       4 1    "$MAX_DIRSIZE"        4 15 10 0 \
+        		"DEFAULT_ACTIVE:"    5 1    "$DEFAULT_ACTIVE"     5 15 10 0 \
+        		"TIMEOUT:"           6 1    "$TIMEOUT"            6 15 10 0 \
+        		"QSO_TIMEOUT:"       7 1    "$QSO_TIMEOUT"        7 15 10 0 \
+        		"ENCODER_CMD:"       8 1    "$ENCODER_CMD"        8 15 10 0 \
+			2>&1 1>&3); } 3>&1
+			printf '%s\n' '/\[QsoRecorder]/' '/MIN_TIME=/' "s/#MIN_TIME=.*/MIN_TIME=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[QsoRecorder]/' '/MAX_TIME=/' "s/MAX_TIME=.*/MAX_TIME=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[QsoRecorder]/' '/SOFT_TIME=/' "s/SOFT_TIME=.*/SOFT_TIME=${array[2]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[QsoRecorder]/' '/MAX_DIRSIZE=/' "s/MAX_DIRSIZE=.*/MAX_DIRSIZE=${array[3]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[QsoRecorder]/' '/DEFAULT_ACTIVE=/' "s/#DEFAULT_ACTIVE=.*/DEFAULT_ACTIVE=${array[4]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[QsoRecorder]/' '/TIMEOUT=/' "s/#TIMEOUT=.*/TIMEOUT=${array[5]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[QsoRecorder]/' '/QSO_TIMEOUT=/' "s/#QSO_TIMEOUT=.*/QSO_TIMEOUT=${array[6]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[QsoRecorder]/' '/ENCODER_CMD=/' "s/#ENCODER_CMD=.*/ENCODER_CMD=${array[7]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Wbrx)
+            RESTART_SVXLINK_REQUIRED=1
+            TYPE=RtlUsb
+			DEV_MATCH=""
+			HOST=""
+			PORT=""
+			CENTER_FQ=""
+			FQ_CORR=""	
+			GAIN=""
+			PEAK_METER=""
+			SAMPLE_RATE=""
+			{
+			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "WebRX Configuration" --title "WebRx Setup" --form "WebRX" 20 70 0 \
+				"DEV_MATCH:"      1 1  "$DEV_MATCH"   1 15 15 0 \
+				"HOST:"           2 1  "$HOST"        2 15 15 0 \
+				"PORT:"           3 1  "$PORT"        3 15 15 0 \
+				"CENTER_FQ"       4 1  "$CENTER_FQ"   4 15 15 0 \
+				"FQ_CORR:"        5 1  "$FQ_CORR"     5 15 15 0 \
+				"GAIN:"           6 1  "$GAIN"        6 15 15 0 \
+				"PEAK_METER:"     7 1  "$PEAK_METER"  7 15 15 0 \
+				"SAMPLE_RATE:"    8 1  "$SAMPLE_RATE" 8 15 15 0 \
+			2>&1 1>&3); } 3>&1
+			printf '%s\n' '/\[WbRx1]/' '/DEV_MATCH=/' "s/#DEV_MATCH=.*/DEV_MATCH=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[WbRx1]/' '/HOST=/' "s/#HOST=.*/HOST=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[WbRx1]/' '/PORT=/' "s/#PORT=.*/PORT=${array[2]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[WbRx1]/' '/CENTER_FQ=/' "s/#CENTER_FQ=.*/CENTER_FQ=${array[3]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[WbRx1]/' '/FQ_CORR=/' "s/#FQ_CORR=.*/FQ_CORR=${array[4]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[WbRx1]/' '/GAIN=/' "s/#GAIN=.*/GAIN=${array[5]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[WbRx1]/' '/PEAK_METER=/' "s/#PEAK_METER=.*/PEAK_METER=${array[6]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[WbRx1]/' '/SAMPLE_RATE=/' "s/#SAMPLE_RATE=.*/SAMPLE_RATE=${array[7]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Ru)
+            RESTART_SVXLINK_REQUIRED=1
+            TYPE=Ddr
+			SQL_DET=""
+			SIGLEV_DET=""
+			SIGLEV_SLOPE=""
+			SIGLEV_OFFSET=""
+			SIGLEV_OPEN_THRESH=""
+			SIGLEV_CLOSE_THRESH=""
+			CTCSS_FQ=""
+			DTMF_DEC_TYPE=""
+			DTMF_MUTING=""
+			DEEMPHASIS=""
+			FQ=""
+			WBRX=""
+			{
+			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "WebRX Configuration" --title "WebRx Setup" --form "WebRX" 20 70 0 \
+				"TYPE:"					1 1  "$TYPE"                1 15 15 0 \
+				"SQL_DET:"				2 1  "$SQL_DET"             2 15 15 0 \
+				"SIGLEV_DET:" 			3 1  "$SIGLEV_DET"          3 15 15 0 \
+				"SIGLEV_SLOPE:"			4 1  "$SIGLEV_SLOPE"        4 15 15 0 \
+				"SIGLEV_OFFSET:"		5 1  "$SIGLEV_OFFSET"       5 15 15 0 \
+				"SIGLEV_OPEN_THRESH:"	6 1  "$SIGLEV_OPEN_THRESH"  6 15 15 0 \
+				"SIGLEV_CLOSE_THRESH:"	7 1  "$SIGLEV_CLOSE_THRESH" 7 15 15 0 \
+				"CTCSS_FQ:"				8 1  "$CTCSS_FQ"            8 15 15 0 \
+				"DTMF_DEC_TYPE:"		9 1  "$DTMF_DEC_TYPE"       9 15 15 0 \
+				"DTMF_MUTING:"			10 1  "$DTMF_MUTING"        10 15 15 0 \
+				"DEEMPHASIS:"			11 1 "$DEEMPHASIS"          11 15 15 0 \
+				"Freqency:"				12 1 "$FQ"                  12 15 15 0 \
+				"WBRX:"					13 1 "$WBRX"                13 15 15 0 \
+			2>&1 1>&3); } 3>&1
+
+			printf '%s\n' '/\[RU1]/' '/TYPE=/' "s/#TYPE=.*/TYPE=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SQL_DET=/' "s/#SQL_DET=.*/SQL_DET=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_DET=/' "s/#SIGLEV_DET=.*/SIGLEV_DET=${array[2]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_SLOPE=/' "s/#SIGLEV_SLOPE=.*/SIGLEV_SLOPE=${array[3]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_OFFSET=/' "s/#SIGLEV_OFFSET=.*/SIGLEV_OFFSET=${array[4]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_OPEN_THRESH=/' "s/#SIGLEV_OPEN_THRESH=.*/SIGLEV_OPEN_THRESH=${array[5]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_CLOSE_THRESH=/' "s/#SIGLEV_CLOSE_THRESH=.*/SIGLEV_CLOSE_THRESH=${array[6]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/CTCSS_FQ=/' "s/#CTCSS_FQ=.*/CTCSS_FQ=${array[7]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/DTMF_DEC_TYPE=/' "s/#DTMF_DEC_TYPE=.*/DTMF_DEC_TYPE=${array[8]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/DEEMPHASIS=/' "s/#DEEMPHASIS=.*/DEEMPHASIS=${array[9]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/FQ=/' "s/#FQ=.*/FQ=${array[10]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/WBRX=/' "s/#WBRX=.*/WBRX=${array[11]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      LocationInfo)
+        	RESTART_SVXLINK_REQUIRED=1
+        	APRS_SERVER_LIST=""
+			STATUS_SERVER_LIST=""
+			LON_POSITION=""
+			LAT_POSITION=""
+			CALLSIGN=""
+			FREQUENCY=""
+			TX_POWER=""
+			ANTENNA_GAIN=""
+			ANTENNA_HEIGHT=""
+			ANTENNA_DIR=""
+			PATH=""
+			BEACON_INTERVAL=""
+			TONE=""
+			COMMENT=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Location Infromation" --title "LocationInfo Setup" --form "LocationInfo" 20 70 0 \
+        	"APRS_SERVER_LIST:"     1 1    "$APRS_SERVER_LIST"    1 15 10 0 \
+        	"STATUS_SERVER_LIST:"   2 1    "$STATUS_SERVER_LIST"  2 15 10 0 \
+        	"LON_POSITION:"         3 1    "$LON_POSITION"        3 15 10 0 \
+        	"LAT_POSITION:"         4 1    "$LAT_POSITION"        4 15 10 0 \
+        	"CALLSIGN:"             5 1    "$CALLSIGN"            5 15 10 0 \
+        	"FREQUENCY:"            6 1    "$FREQUENCY"           6 15 10 0 \
+        	"TX_POWER:"             7 1    "$TX_POWER"            7 15 10 0 \
+        	"ANTENNA_GAIN:"         8 1    "$ANTENNA_GAIN"        8 15 10 0 \
+        	"ANTENNA_HEIGHT:"       9 1    "$ANTENNA_HEIGHT"      9 15 10 0 \
+        	"ANTENNA_DIR:"          10 1   "$ANTENNA_DIR"         10 15 10 0 \
+        	"PATH:"                 11 1   "$PATH"                11 15 10 0 \
+        	"BEACON_INTERVAL:"      12 1   "$BEACON_INTERVAL"     12 15 10 0 \
+        	"TONE:"                 13 1   "$TONE"                13 15 10 0 \
+        	"COMMENT:"              14 1   "$COMMENT"             14 15 40 0 \
+		2>&1 1>&3); } 3>&1
+			printf '%s\n' '/\[GLOBAL]/' '/LOCATION_INFO=/' "s/#LOCATION_INFO=.*/LOCATION_INFO=/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/APRS_SERVER_LIST=/' "s/APRS_SERVER_LIST=.*/APRS_SERVER_LIST=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/STATUS_SERVER_LIST=/' "s/#STATUS_SERVER_LIST=.*/STATUS_SERVER_LIST=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/LON_POSITION=/' "s/#LON_POSITION=.*/LON_POSITION=${array[2]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/LAT_POSITION=/' "s/#LAT_POSITION=.*/LAT_POSITION=${array[3]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/CALLSIGN=/' "s/#CALLSIGN=.*/CALLSIGN=${array[4]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/FREQUENCY=/' "s/#FREQUENCY=.*/FREQUENCY=${array[5]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/TX_POWER=/' "s/#TX_POWER=.*/TX_POWER=${array[6]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_GAIN=/' "s/#ANTENNA_GAIN=.*/ANTENNA_GAIN=${array[7]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_HEIGHT=/' "s/#ANTENNA_HEIGHT=.*/ANTENNA_HEIGHT=${array[8]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_DIR=/' "s/#ANTENNA_DIR=.*/ANTENNA_DIR=${array[9]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/PATH=/' "s/PATH=.*/PATH=${array[10]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/BEACON_INTERVAL=/' "s/BEACON_INTERVAL=.*/BEACON_INTERVAL=${array[11]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/TONE=/' "s/#TONE=.*/TONE=${array[12]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/COMMENT=/' "s/COMMENT=.*/COMMENT=${array[13]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      CT-Timer)
+            RESTART_SVXLINK_REQUIRED=1
+            SHORT_IDENT_INTERVAL=""
+			LONG_IDENT_INTERVAL=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle " Courtesy Tone Timer Configuration" --title "CT Timer Options" --form "CTTimer" 20 70 0 \
+        		"SHORT_IDENT_INTERVAL:"    1 1    "$SHORT_IDENT_INTERVAL"  1 22 3 0 \
+        		"LONG_IDENT_INTERVAL:"     2 1    "$LONG_IDENT_INTERVAL"   2 22 3 0 \
+		2>&1 1>&3); } 3>&1
+
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+
+		printf '%s\n' "/\[$logics]/" '/SHORT_IDENT_INTERVAL=/' "s/SHORT_IDENT_INTERVAL=.*/SHORT_IDENT_INTERVAL=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+		printf '%s\n' "/\[$logics]/" '/LONG_IDENT_INTERVAL=/' "s/LONG_IDENT_INTERVAL=.*/LONG_IDENT_INTERVAL=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      Courtesy-Tone)
+            RESTART_SVXLINK_REQUIRED=1
+            WHIP_TITLE='---------- Select Courtesy Tone ----------'
+			OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 25 50 20 \
+    "Tone1" " 3 down " OFF \
+    "Tone2" " 3 up " OFF \
+    "Tone3" " 3 up chord " OFF \
+    "Tone4" " 4 down " OFF \
+    "Tone5" " 4 up " OFF \
+    "Tone6" " apollo " OFF \
+    "Tone7" " bee boo " OFF \
+    "Tone8" " beep " OFF \
+    "Tone9" " beep 1 " OFF \
+    "Tone10" " beep 2 " OFF \
+    "Tone11" " beep 3 " OFF \
+    "Tone12" " beep 4 " OFF \
+    "Tone13" " beep 5 " OFF \
+    "Tone14" " beep 6 " OFF \
+    "Tone15" " beep 7 " OFF \
+    "Tone16" " beep 8 " OFF \
+    "Tone17" " blast off " OFF \
+    "Tone18" " boop " OFF \
+    "Tone19" " bumble bee " OFF \
+    "Tone20" " comet " OFF \
+    "Tone21" " dunce cap " OFF \
+    "Tone22" " moon bounce " OFF \
+    "Tone23" " nbc fast " OFF \
+    "Tone24" " nbc medium " OFF \
+    "Tone25" " nbc slow " OFF \
+    "Tone26" " nextel chirp " OFF \
+    "Tone27" " over here " OFF \
+    "Tone28" " piano chord " OFF \
+    "Tone29" " rc210 number 01 " OFF \
+    "Tone30" " rc210 number 02 " OFF \
+    "Tone31" " rc210 number 03 " OFF \
+    "Tone32" " rc210 number 04 " OFF \
+    "Tone33" " rc210 number 05 " OFF \
+    "Tone34" " rc210 number 06 " OFF \
+    "Tone35" " rc210 number 07 " OFF \
+    "Tone36" " rc210 number 08 " OFF \
+    "Tone37" " rc210 number 09 " OFF \
+    "Tone38" " rc210 number 10 " OFF \
+    "Tone39" " sat pass " OFF \
+    "Tone40" " shooting star " OFF \
+    "Tone41" " star dust " OFF \
+    "Tone42" " target " OFF \
+    "Tone43" " tel ring " OFF \
+    "Tone44" " tumble weed " OFF \
+    "Tone45" " water drop " OFF \
+    "Tone46" " whip poor whill " OFF \
+    "Tone47" " XP Error Tone " OFF \
+    3>&1 1>&2 2>&3 || : )
+    while read -r option; do
+    if [[ $option = @(Tone1|Tone2|Tone3|Tone4|Tone5|Tone6|Tone7|Tone8|Tone9|Tone10|Tone11|Tone12|Tone13|Tone14|Tone15|Tone16|Tone17|Tone18|Tone19|Tone20|Tone21|Tone22|Tone23|Tone24|Tone25|Tone26|Tone27|Tone28|Tone29|Tone30|Tone31|Tone32|Tone33|Tone34|Tone35|Tone36|Tone37|Tone38|Tone39|Tone40|Tone41|Tone42|Tone43|Tone44|Tone45|Tone46|Tone47) ]]; then
+      selected=$option,
+    else
+      whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      declare -p option
+    fi
+  done <<< "$OPTION"
+  selected=${selected%,}
+  cp -r /usr/share/Svxlink/sounds/Courtesy_Tones/"$selected".wav /usr/share/Svxlink/sounds/Custom_Courtesy_Tones/Courtesy_Tone.wav
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+      FX-Gain)
+            RESTART_SVXLINK_REQUIRED=1
+            FX_GAIN_NORMAL=""
+			FX_GAIN_LOW=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle "FX Gain Configuration" --title "FX Gain Options" --form "FXGain" 20 70 0 \
+			"FX_GAIN_NORMAL:"      1 1    "$FX_GAIN_NORMAL"     1 15 3 0 \
+			"FX_GAIN_LOW:"         2 1    "$FX_GAIN_LOW"        2 15 3 0 \
+		2>&1 1>&3); } 3>&1
+
+declare -A config=()
+ while IFS='=' read -r key value; do
+   if [[ -z $value && $key = "["*"]" ]]; then
+     section=${key#\[} section=${section%]}
+     continue
+   else
+     if [[ -z $key || $key = \#* ]]; then
+       continue
+     fi
+   fi
+   config[$section.$key]=$value
+done < /etc/svxlink/Svxlink.conf
+
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/FX_GAIN_NORMAL=/' "s/FX_GAIN_NORMAL=.*/FX_GAIN_NORMAL=${array[0]}/" w q  | ex /etc/svxlink/Svxlink.conf
+			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/FX_GAIN_LOW=/' "s/FX_GAIN_LOW=.*/FX_GAIN_LOW=${array[1]}/" w q  | ex /etc/svxlink/Svxlink.conf
+            #Return to This Menu
+            TARGETMENUID=4
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=5
+Svxlink_Modules_Menu() {
+	TARGETMENUID=0
+ 	WHIP_TITLE='---------- Svxlink Modules Configuration Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"Echolink" "Echolink Configuration Menu" \
+    	"Frn" "Free Radio Network Configuration Menu" \
+    	"Relay" "Relay Module Configuration Menu" \
+    	"Weather" "Weather Module Configuration Menu" \
+    	"Sstv" "Slow Scan TV configuration Menu" \
+    	"Qso_Recorder" "Enable/Disable QSO Recorder" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      Echolink)
+            RESTART_SVXLINK_REQUIRED=1
+            Check_Echolink
+            Echolink_Main_Menu
+            #Return to This Menu
+            TARGETMENUID=5
+            ;;
+      Frn)
+            RESTART_SVXLINK_REQUIRED=1
+            Check_frn
+            whiptail --msgbox " Details http://freeradionetwork.eu/frnprotocol.htm " 10 25 2
+			TIMEOUT=""
+			SERVER=""
+			PORT=""
+			EMAIL_ADDRESS=""
+			DYN_PASSWORD=""
+			CLIENT_TYPE=1
+			CALLSIGN_AND_USER=""
+			BAND_AND_CHANNEL=""
+			DESCRIPTION=""
+			COUNTRY=""
+			CITY_CITY_PART=""
+			NET=Test
+			#FRN_DEBUG=1
+			#DISABLE_RF=1
+			{
+			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "FreeRadio Configuration" --title "FreeRadio Setup" --form "FreeRadioNetwork" 20 70 0 \
+				"TIMEOUT"                1 1    "$TIMEOUT"           1 10 10 0 \
+       		 	"SERVER:"                2 1    "$SERVER"            2 10 15 0 \
+        		"PORT:"                  3 1    "$PORT"              3 10 10 0 \
+        		"EMAIL_ADDRESS:"         4 1    "$EMAIL_ADDRESS"     4 15 40 0 \
+        		"DYN_PASSWORD:"          5 1    "$DYN_PASSWORD"      5 15 40 0 \
+        		"CLIENT_TYPE:"           6 1    "$CLIENT_TYPE"       6 15 2 0 \
+        		"CALLSIGN_AND_USER:"     7 1    "$CALLSIGN_AND_USER" 7 20 40 0 \
+        		"BAND_AND_CHANNEL:"      8 1    "$BAND_AND_CHANNEL"  8 20 40 0 \
+        		"DESCRIPTION:"           9 1    "$DESCRIPTION"       9 15 40 0 \
+        		"COUNTRY:"               10 1   "$COUNTRY"           10 10 30 0 \
+        		"CITY_CITY_PART:"        11 1   "$CITY_CITY_PART"    11 18 30 0 \
+        		"NET:"                   12 1   "$NET"               12 10 10 0 \
+			2>&1 1>&3); } 3>&1
+			printf '%s\n' '/\[ModuleFrn]/' '/TIMEOUT=/' "s/TIMEOUT=.*/TIMEOUT=${array[0]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/SERVER=/' "s/SERVER=.*/SERVER=${array[1]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/PORT=/' "s/PORT=.*/PORT=${array[2]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/EMAIL_ADDRESS=/' "s/EMAIL_ADDRESS=.*/EMAIL_ADDRESS=${array[3]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/DYN_PASSWORD=/' "s/DYN_PASSWORD=.*/DYN_PASSWORD=${array[4]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/CLIENT_TYPE=/' "s/CLIENT_TYPE=.*/CLIENT_TYPE=${array[5]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/CALLSIGN_AND_USER=/' "s/CALLSIGN_AND_USER=.*/CALLSIGN_AND_USER=${array[6]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/BAND_AND_CHANNEL=/' "s/BAND_AND_CHANNEL=.*/BAND_AND_CHANNEL=${array[7]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/DESCRIPTION=/' "s/DESCRIPTION=.*/DESCRIPTION=${array[8]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/COUNTRY=/' "s/COUNTRY=.*/COUNTRY=${array[9]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/CITY_CITY_PART=/' "s/CITY_CITY_PART=.*/CITY_CITY_PART=${array[10]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			printf '%s\n' '/\[ModuleFrn]/' '/NET=/' "s/NET=.*/NET=${array[11]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+            #Return to This Menu
+            TARGETMENUID=5
+            ;;
+      Relay)
+            RESTART_SVXLINK_REQUIRED=1
+            Check_Relay
+            SvxLink_Relay_Menu
+            #Return to This Menu
+            TARGETMENUID=5
+            ;;
+      Weather)
+            RESTART_SVXLINK_REQUIRED=1
+            Check_Weather
+            SvxLink_Weather_Menu
+            #Return to This Menu
+            TARGETMENUID=5
+            ;; 
+      Sstv)
+            RESTART_SVXLINK_REQUIRED=1
+            Check_sstv
+            SvxLink_Sstv_Menu
+            #Return to This Menu
+            TARGETMENUID=5
+            ;;
+      Qso_Recorder)
+   			RESTART_SVXLINK_REQUIRED=1
+   			set_qso
+    	    #Return to This Menu
+        	TARGETMENUID=5
+        	;;
+     esac
+    fi
+}
+
+#TARGETMENUID=6
+# SxvLink Advanced Menus
+Svxlink_Advanced_Menu() {
+    TARGETMENUID=0
+    WHIP_TITLE='---------- SxvLink Advanced Options Menu ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 80 10 \
+    	"Svxlink-Config-Reset" "Reset Svxlink config files back default " \
+    	"SxvLink-Service" "SxvLink Service Menu" \
+    	"RepeaterBoard-Test" "F8ASB SvxLink Repeater Board Test Menu" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+       Svxlink-Config-Reset)
+            RESTART_SVXLINK_REQUIRED=1
+            rm -rf /erc/Svxlink
+            cp -rp /usr/share/examples/Svxlink/conf/* /etc/svxlink
+            Update-Svxlink-Custom
+            #Return to This Menu
+            TARGETMENUID=3
+            ;;
+      SxvLink-Service)
+            Svxlink_Service_Menu
+            #Return to This Menu
+            TARGETMENUID=3
+            ;;
+       RepeaterBoard-Test)
+            Svxlink_Boards_Menu
+            #Return to This Menu
+            TARGETMENUID=6
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=7
+# SxvLink Service Menus
+Svxlink_Service_Menu() {
+	TARGETMENUID=0
+    WHIP_TITLE='---------- SxvLink Service Menu ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"Restart-SvxLink" "Start and Restart Svxlink" \
+    	"Stop-SvxLink" "Stop Svxlink" \
+    	"Restart-Remotetrx" "Start and Restart remotetrx" \
+    	"Stop-Remotetrx" "Stop remotetrx" \
+    	"Enable-SvxLink" "Enable Svxlink systemd service" \
+    	"Disable-SvxLink" "Disable Svxlink systemd service" \
+    	"Enable-Remotetrx" "Enable remotetrx systemd service" \
+    	"Disable-Remotetrx" "Disable remotetrx systemd service" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      Restart-SvxLink)
+            service Svxlink restart
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+      Stop-SvxLink)
+            service Svxlink stop
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+      Enable-SvxLink)
+            systemctl enable Svxlink.service
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+      Disable-SvxLink)
+            systemctl disable Svxlink.service
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+      Restart-Remotetrx)
+            service remotetrx restart
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+      Stop-Remotetrx)
+            service remotetrx stop
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+      Enable-Remotetrx)
+            systemctl enable remotetrx.service
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+      Disable-Remotetrx)
+            systemctl disable remotetrx.service
+            #Return to This Menu
+            TARGETMENUID=7
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=8
+# SxvLink Board Menus
+Svxlink_Boards_Menu() {
+	TARGETMENUID=0
+    WHIP_TITLE='---------- SxvLink Boards Test Menu ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 60 10 \
+    	"Test_Relays" " Test Board Relays " OFF \
+    	"Test_Inputs" " Test Board Inputs " OFF \
+    	"Test_RS232" " Test Board Serial Port " OFF \
+    	"Test_Tempature" " Test Onboard Temp Sensor " OFF \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      Test_Relays)
+            gpio_setup.sh
+            test-relays.py
+            gpio_tear_down.sh
+            #Return to This Menu
+            TARGETMENUID=8
+            ;;
+      Test_Inputs)
+            gpio_setup.sh
+            test-inputs.py
+            gpio_tear_down.sh
+            #Return to This Menu
+            TARGETMENUID=8
+            ;;
+      Test_RS232)
+            gpio_setup.sh
+            test-rs232.py
+            gpio_tear_down.sh
+            #Return to This Menu
+            TARGETMENUID=8
+            ;;
+      Test_Tempature)
+            gpio_setup.sh
+            test-tempature.py
+            gpio_tear_down.sh
+            #Return to This Menu
+            TARGETMENUID=8
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=9
+# Svxlink Help menu
+Svxlink_Help_Menu() {
+	TARGETMENUID=0
+    WHIP_TITLE='---------- SxvLink Help Menu ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"Help-Module" "Help Module Help" \
+    	"DtmfRepeater-Help" "DtmfRepeater Module Help" \
+    	"Echolink-Help" "Echolink Module Help " \
+    	"Frn-Help" "Free Radio Network Module help" \
+    	"Parrot-Help" "Parrot Module Help" \
+    	"TclVoicemail-Help" "TclVoicemail Module Help" \
+    	"RemoteRelays-Help" "Remote Relays Module Help" \
+    	"WeatherStation-Help" "Weather Station Module Help" \
+    	"TclSSTV-Help" "Tcl SLow Scan TV Module Help" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      Help-Module)
+              whiptail --msgbox "\
+  Help Module
+
+  Pressing 0# will enable the help module which you may then select a module to get help about, including the help modules. Help is provided verbally over the air. If you do not want system users to get help with DTMF commands, disable the help module.
+
+  Sub Commands:
+  0#	Overview of the Help Module
+  1#	Help on Parrot Module
+  2#	Help on Echolink Module
+  #		Exit Help
+
+" 20 70 1
+            #Return to This Menu
+            TARGETMENUID=9
+            ;;
+      DtmfRepeater-Help)
+  whiptail --msgbox "
+  Module DtmfRepeater
+
+  This module will retransmit all received DTMF digits when active. All received  digits will be completely ignored by the SvxLink core. To deactivate the module, send the number sign \(\#\) for at least three   seconds.
+
+  It also is possible to retransmit DTMF digits without first activating the module. However, you will be limited to transmitting digits that  SvxLink does not interpret itself in that context. That is 0-9 and *. In idle mode, just send a command like 4<digits># \(e.g. 4123*#\).
+
+  This module is typically used on a SvxLink repeater to remote control other services via the repeater. The DTMF muting should be enabled so that received DTMF digits are not normally heard on the repeater " 
+
+  25 80
+            #Return to This Menu
+            TARGETMENUID=9
+            ;;
+      Echolink-Help)
+  whiptail --msgbox "\
+  Module Echolink
+
+  ModuleEchoLink is used to connect to other Echolink stations. It  participate as any other Echolink node in the network. To connect to another station, just send the node number ended with a number sign \(\#\). To disconnect the last connected station, send just the number sign. To exit the module, send a number sign when not connected. To get more information on the Echolink system, have a look at the Echolink homepage.
+
+  Subcommands
+
+  There are a couple of subcommands that can be used when ModuleEchoLink has been activated.
+
+  Pressing 2# will enable the Echolink Module. The EcholinkÃ‚Â® network allows licensed Amateur Radio stations to communicate with one another over the Internet using VOIP technology. This module allows worldwide connections to be made between other repeaters or to individuals using Echolink nodes.
+
+  9999# - Connect to Echolink by Node ID. (Node 9999 is ECHOTEST)
+  #	- Disconnect from last connected station
+  ## - Disconnect station and deactivate Echolink Module
+
+  0# - Play the help message                1# - List all connected stations
+  2# - Play local Echolink node id          31# - Connect to a random link or repeater
+  32# - Connect to a random conference      4#- Reconnect to the last disconnected station
+  50# - Deactivate listen only mode         51# - Activate listen only mode
+  7# - Use to disconnect a particular connected station from list
+  6* - Use the connect by callsign feature
+
+  Command 2 may also be activated even if the Echolink module is not active. Just send 22#, and the node id will be read back.
+
+  Connect by callsign
+
+  The \"connect by callsign\" feature make it possible to connect to a station even if the node number is unknown. Callsigns are mapped to digits by using the following method: ABC=2, DEF=3, GHI=4, JKL=5, MNO=6, PQRS=7, TUV=8, WXYZ=9.
+
+  That is the same mapping as on many phones. Letters are mapped to its corresponding digit and digits are of course mapped to their corresponding number. All other characters are mapped to digit 1.
+
+  A search command start with six star \(6*\) and then the callsign code is entered. So if you want to connect to SM0Svx-L you should enter \"*76078915#\". Since the codes are not unique a list of search hits will be presented to the user to choose from. If the entered code ends with star, a wildcard search will be performed. So if you want to search for all stations starting with SM0 you enter \"6*760*#\".
+
+  " 50 120 1
+            #Return to This Menu
+            TARGETMENUID=9
+            ;;
+      Frn-Help)
+  whiptail --msgbox "\
+  Module Frn
+  ModuleFrn is used to connect to Free Radio Network servers. It participates as any other client in the network. Just activate the module to connect to the server. To exit the module, send a Number,Hash,Pound,#, sign.
+
+  Subcommands
+
+  There are a couple of subcommands that can be used when ModuleFrn has been activated.
+
+  0 - Play the help message
+  1 - Count all connected clients1
+  20 - Deactivate listen-only mode
+  21 - Activate listen-only mode
+
+  " 30 80 1
+            #Return to This Menu
+            TARGETMENUID=9
+            ;;
+
+      TclVoicemail-Help)
+   whiptail --msgbox "\
+   Module TclVoiceMail
+
+   This module implements a simple voice mail system to be used by the local node users. It is not possible to send voice mails to users at other nodes. To be able to use the voice mail module you must have a personal login ID and password. Contact your sysop to get these.\
+   When the module is activated \(default 3#\) you will be prompted to enter your login ID and password. The login ID always is three digits long. The password can be between one to seven digits long. Enter your login ID and password in one sequence like 123456# if your login \
+   ID is 123 and your password is 456. After that, context menus will guide you through using the system. An empty command \(#\) will abort the current operation. The recommended way of encoding user IDs is the \"phone method\". Many phones have letters on the key pad like: \
+   2=ABC, 3=DEF, 4=GHI, 5=JKL, 6=MNO, 7=PQRS, 8=TUV, 9=WXYZ. To encode the callsign SM0Svx, use the three last letters and map them to digits. Then we will get the user ID 789. In case of a collision, add 1. For example AFC and ADB will both map to 232. One possible mapping is \
+   then AFC=232 and ADB=233. When using this method to encode user IDs, it will be possible for a user to guess another users user ID. It is possible for the sysop to configure an e-mail address for each user. If this has been done, an e-mail will be sent to the user if someone \
+   records a new voice mail for him. To deactivate the module, just press # when the main menu is active.
+
+  Recording a voice mail
+   To start recording a voice mail, command 2# is used. The system will then ask you for a recipient. You can combine these two steps by entering the user ID directly after the command. For example if you want to record a voice mail for user 123, send the sequence 2123#. After that you will first be prompted to record a short subject. Keep it as short as possible. Then a voice prompt will urge you to record the actual message.
+
+   There are maximum recording times enforced for the subject and message body. These are configurable by the sysop. The default values are 10 seconds for the subject and two minutes for the message body.
+
+  Listening to received voice mails
+   To listen to received voice mails, send command 1#. The fist stored voice mail will then be played back, first the subject and then immediately the actual message. After the message has been played the user is given three options: delete the message, reply to the sender after deleting the message or play the message again. There actually are one more choice. If just a number sign is sent, the operation is aborted and the user is sent back to the main menu. The message will not be marked as read.
+
+   To play the next stored message do the same procedure again starting with command 1#.
+
+  Checking for new voice mails
+   Users having new voice mails in their inbox will normally be announced at the time of a long identification. This is by default once every hour. Manually checking if there are any new voice mails for a user can be done without activating the module first. Just send 3<user id>#\(e.g. 3123#\) to announce this.
+
+  " 50 110 1
+            #Return to This Menu
+            TARGETMENUID=9
+            ;;
+
+	RemoteRelays-Help)
+  whiptail --msgbox "\
+  Module RemoteRelays
+   The Remote Relay Module is used with the SvxLink Repeater boards. The boards have 1 to 4 relayes depending on how many you installed when you built the board. These relays allow you to control items remotely. Like keyless door entry batteries and other onsite devices. The following dtmf commands control the the module and relays. from 1 to 8 Relay. 
+
+0# Help Module
+9# - Plays Help File
+9# To Active Relay Module (or whatever number is set in config file.)
+0# - Speaks state of all relays (On/Off) as defined in config
+
+X=1-4 if using the Svxlink Board and 1-8 if just using Relays
+
+X0# - Relay 1 Off
+X1# - Relay 1 On
+X2# - Relay 1 Momentary
+
+100# - All Relays Off
+101# - All Relays On
+102# - All Relays Momentary
+
+999# - Relay Test Procedure
+
+# - Deactivate Relay Module
+  " 30 80 1
+           #Return to This Menu
+           TARGETMENUID=9
+           ;;
+
+	WeatherStation-Help)
+  whiptail --msgbox "\
+  Module WeatherStation
+ Under Construction
+  " 30 80 1
+           #Return to This Menu
+           TARGETMENUID=9
+           ;;
+
+	TclSSTV-Help)
+  whiptail --msgbox "\
+  Module TclSSTV
+ Under Construction
+ " 30 80 1
+           #Return to This Menu
+           TARGETMENUID=9
+           ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=10
+Echolink_Main_Menu() {
+	TARGETMENUID=0
+	WHIP_TITLE='---------- Echolink Configuration Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"Echolink-Config" " Basic Echolink Configuration " \
+    	"Echolink-Advanced" " Echolink Advanced Configuration " \
+    	"Echolink-Help" " Echolink Help Menu " \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      Echolink-Config)
+            RESTART_SVXLINK_REQUIRED=1
+            TIMEOUT=""
+			SERVERS=servers.Echolink.org
+			CALLSIGN=""
+			PASSWORD=""
+			SYSOPNAME=""
+			LOCATION=""
+			MAX_QSOS=""
+			MAX_CONNECTIONS=""
+			LINK_IDLE_TIMEOUT=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Echolink Configuration" --title "Echolink Setup" --form "Echolink Network" 20 70 0 \
+        	"TIMEOUT:"             1 1    "$TIMEOUT"            1 15 10 0 \
+        	"SERVERS:"             2 1    "$SERVERS"            2 15 30 0 \
+        	"CALLSIGN:"            3 1    "$CALLSIGN"           3 15 10 0 \
+        	"PASSWORD:"            4 1    "$PASSWORD"           4 15 30 0 \
+        	"SYSOPNAME:"           5 1    "$SYSOPNAME"          5 15 15 0 \
+        	"LOCATION:"            6 1    "$LOCATION"           6 15 30 0 \
+        	"MAX_QSOS:"            7 1    "$MAX_QSOS"           7 15 3 0 \
+        	"MAX_CONNECTIONS:"     8 1   "$MAX_CONNECTIONS"     8 20 3 0 \
+        	"LINK_IDLE_TIMEOUT:"   9 1   "$LINK_IDLE_TIMEOUT"   9 25 3 0 \
+		2>&1 1>&3); } 3>&1
+			printf '%s\n' '/\[ModuleEchoLink]/' '/TIMEOUT=/' "s/TIMEOUT=.*/TIMEOUT=${array[0]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/SERVERS=/' "s/SERVERS=.*/SERVERS=${array[1]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/CALLSIGN=/' "s/CALLSIGN=.*/CALLSIGN=${array[2]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/PASSWORD=/' "s/PASSWORD=.*/PASSWORD=${array[3]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/SYSOPNAME=/' "s/SYSOPNAME=.*/SYSOPNAME=${array[4]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/LOCATION=/' "s/LOCATION=.*/LOCATION=${array[5]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/MAX_QSOS=/' "s/MAX_QSOS=.*/MAX_QSOS=${array[6]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/MAX_CONNECTIONS=/' "s/MAX_CONNECTIONS=.*/MAX_CONNECTIONS=${array[7]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/LINK_IDLE_TIMEOUT=/' "s/LINK_IDLE_TIMEOUT=.*/LINK_IDLE_TIMEOUT=${array[8]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+            #Return to This Menu
+            TARGETMENUID=10
+      	    ;;
+      Echolink-Advanced)
+              Echolink_Advanced_Menu
+              #Return to This Menu
+              TARGETMENUID=10
+              ;;
+      Echolink-Help)
+              Echolink_Help_Menu
+              #Return to This Menu
+              TARGETMENUID=10
+              ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=11
+Echolink_Advanced_Menu() {
+	TARGETMENUID=0
+	WHIP_TITLE='---------- Echolink Advanced ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"ALLOW_IP" " Configure Allow Ip Range (192.168.1./24) " \
+    	"DROP_INCOMING" " Drop Incoming CallSigns Match Regex " \
+    	"REJECT_INCOMING" " Reject Incoming CallSigns Match RegEx " \
+    	"ACCEPT_INCOMING" " Accept Incoming CallSigns Match RegEx" \
+    	"REJECT_OUTGOING" " Reject Outgoing CallSigns Match RegEx " \
+    	"ACCEPT_OUTGOING" " Accept Outgoing CallSigns Match RegEx " \
+    	"REJECT_CONF" " Reject Conference Connections Match RegEx " \
+    	"CHECK_NR_CONNECTS" " Set Reconnetion attemp timeout and limit " \
+    	"PROXY_SERVER" " Setup Echolink ProxyServer connection " \
+    	"BIND_ADDR" " Setup Echolink Bind Address " \
+    	"AUTO_CONNECTION" " Setup Remote Auto Connection " \
+    	"USE_GSM_ONLY" " Setup Echolink to use GSM Codec Only " \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      ALLOW_IP)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set Allow IP Range " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/ALLOW_IP=/' "s/#ALLOW_IP=.*/ALLOW_IP=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+      	 ;;
+      DROP_INCOMING)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox "Set DROP INCOMING" 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/DROP_INCOMING=/' "s/#DROP_INCOMING=.*/DROP_INCOMING=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+         ;;
+      REJECT_INCOMING)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set REJECT INCOMING " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/REJECT_INCOMING=/' "s/#REJECT_INCOMING=.*/REJECT_INCOMING=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+      	 ;;
+      ACCEPT_INCOMING)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set ACCEPT INCOMING " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/ACCEPT_INCOMING=/' "s/ACCEPT_INCOMING=.*/ACCEPT_INCOMING=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+         ;;
+      REJECT_OUTGOING)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set REJECT_OUTGOING " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/REJECT_OUTGOING=/' "s/#REJECT_OUTGOING=.*/REJECT_OUTGOING=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+      	 ;;
+      ACCEPT_OUTGOING)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set ACCEPT_OUTGOING " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/ACCEPT_OUTGOING=/' "s/#ACCEPT_OUTGOING=.*/ACCEPT_OUTGOING=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+         ;;
+      REJECT_CONF)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set REJECT CONF " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/REJECT_CONF=/' "s/#REJECT_CONF=.*/REJECT_CONF=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+      	 ;;
+      CHECK_NR_CONNECTS)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set CHECK_NR_CONNECTS " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/CHECK_NR_CONNECTS=/' "s/#CHECK_NR_CONNECTS=.*/CHECK_NR_CONNECTS=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+         ;;
+      PROXY_SERVER)
+         	RESTART_SVXLINK_REQUIRED=1
+         	PROXY_SERVER=""
+			PROXY_PORT=""
+			PROXY_PASSWORD=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Echolink Proxy Configuration" --title "Echolink Proxy Setup" --form "Echolink Proxy" 20 70 0 \
+			"PROXY_SERVER:"        1 1   "$PROXY_SERVER"      1 10 15 0 \
+			"PROXY_PORT:"          2 1   "$PROXY_PORT"        2 10 15 0 \
+			"PROXY_PASSWORD:"      3 1   "$PROXY_PASSWORD"    3 10 15 0 \
+		2>&1 1>&3); } 3>&1
+			printf '%s\n' '/\[ModuleEchoLink]/' '/PROXY_SERVER=/' "s/#PROXY_SERVER=.*/PROXY_SERVER=${array[0]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/PROXY_PORT=/' "s/#PROXY_PORT=.*/PROXY_PORT=${array[1]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+			printf '%s\n' '/\[ModuleEchoLink]/' '/PROXY_PASSWORD=/' "s/#PROXY_PASSWORD=.*/PROXY_PASSWORD=${array[3]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+        #Return to This Menu
+        TARGETMENUID=11
+      	;;
+      BIND_ADDR)
+         RESTART_SVXLINK_REQUIRED=1
+         OPTION=$(whiptail --inputbox " Set BIND ADDRESS " 8 60 --title "" 3>&1 1>&2 2>&3)
+         printf '%s\n' '/\[ModuleEchoLink]/' '/BIND_ADDR=/' "s/#BIND_ADDR=.*/BIND_ADDR=$OPTION/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+         ;;
+      AUTO_CONNECTION)
+         RESTART_SVXLINK_REQUIRED=1
+         AUTOCON_ECHOLINK_ID=""
+AUTOCON_TIME=""
+{
+mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Echolink Auto Connection" --title "Echolink Auto Connection Setup" --form "Echolink AutoConnect" 20 70 0 \
+        "AUTOCON_ECHOLINK_ID:"   1 1   "$AUTOCON_ECHOLINK_ID"   1 22 30 0 \
+        "AUTOCON_TIME:"          2 1   "$AUTOCON_TIME"          2 22 5 0 \
+2>&1 1>&3); } 3>&1
+
+printf '%s\n' '/\[ModuleEchoLink]/' '/AUTOCON_ECHOLINK_ID=/' "s/#AUTOCON_ECHOLINK_ID=.*/AUTOCON_ECHOLINK_ID=${array[0]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+printf '%s\n' '/\[ModuleEchoLink]/' '/AUTOCON_TIME=/' "s/#AUTOCON_TIME=.*/AUTOCON_TIME=${array[1]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+         #Return to This Menu
+         TARGETMENUID=11
+         ;;
+      USE_GSM_ONLY)
+         RESTART_SVXLINK_REQUIRED=1
+             WHIP_TITLE='---------- Enable / Disable GSM Echolink ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+    "ENABLE_GSM" " Enable GSM Codec 800MHZ / Below Cpu under 512 Ram " OFF \
+    "DISABLE_GSM" " Disable GSM Codec for Higer Speed Systems " OFF \
+    3>&1 1>&2 2>&3 || : )
+    case "$OPTION" in
+      ENABLE_GSM) printf '%s\n' '/\[ModuleEchoLink]/' '/USE_GSM_ONLY=/' 's/#USE_GSM_ONLY=.*/USE_GSM_ONLY=1/' w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+        ;;
+      DISABLE_GSM) printf '%s\n' '/\[ModuleEchoLink]/' '/USE_GSM_ONLY=/' 's/USE_GSM_ONLY=.*/#USE_GSM_ONLY=1/' w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
+        ;;
+    esac
+         #Return to This Menu
+         TARGETMENUID=11
+         ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=12
+# Echolink Help Menu
+Echolink_Help_Menu() {
+	TARGETMENUID=0
+    WHIP_TITLE='---------- Echolink Help Menu ----------'
+    OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"ALLOWIP" " Echolink ALLOW_IP Help " \
+    	"DROPIN" " Echolink DROP_INCOMING Help " \
+    	"REJIN" " Echolink REJECT_INCOMING Help " \
+    	"ACCPTIN" " Echolink ACCEPT_INCOMING Help " \
+    	"REJOG" " Echolink REJECT_OUTGOING Help " \
+    	"ACCPTOG" " Echolink ACCEPT_OUTGOING Help " \
+    	"REJCONF" " Echolink Reject Conference Help (in works) " \
+    	"NRCONN" " Echolink CHECK_NR_CONNECTS Help " \
+    	"SERVERS" " Echolink SERVERS Help " \
+    	"CALLSIGN" " Echolink CALLSIGN Help " \
+    	"SYSOPNAME" " Echolink SYSOPNAME Help " \
+    	"PASSWORD" " Echolink PASSWORD Help " \
+    	"LOCATION" " Echolink LOCATION Help " \
+    	"PROXSERV" " EcholinkPROXY_SERVER " \
+    	"PROXPORT" " Echolink PROXY_PORT Help " \
+    	"PROXPWD" " Echolink PROXY_PASSWORD Help " \
+    	"QSOS" " Echolink MAX_QSOS Help " \
+    	"GSM" " Echolink USE_GSM_ONLY Help " \
+    	"LANG" " Echolink DEFAULT_LANG Help " \
+    	"MAXCONN" " Echolink MAX_CONNECTIONS Help " \
+    	"IDLETIME" " Echolink LINK_IDLE_TIMEOUT Help " \
+    	"AUTOCONID" " Echolink AUTOCON_Echolink_ID Help " \
+    	"AUTOTIME" " Echolink AUTOCON_TIME Help " \
+    	"DESCRIPTION" " Echolink DESCRIPTION Help " \
+    	"EXPRESSIONS" " Echolink Regular Expressions Help " \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+       ALLOWIP) whiptail --title "ALLOW_IP" --msgbox "Use this variable very carefully. Connections originating from the given subnet will not be checked against the Echolink directory server. A typical use of this is if you want to connect to your own Svxlink server and both the server and you are behind a IP masquerading firewall.  Example 192.168.1.0/24 " 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       DROPIN) whiptail --title "DROP_INCOMING" --msgbox "Drop all incoming connections where the remote callsign match this regular expression. No message will be sent to the remote station notifying about the drop. The connection will just be ignored. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       REJIN) whiptail --title "REJECT_INCOMING" --msgbox "Reject all incoming connections where the remote callsign match this regular expression. A message will be sent to the remote station indicating that the connection was rejected. The DROP_INCOMING directive will be evaluated before REJECT_INCOMING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       ACCPTIN) whiptail --title "ACCEPT_INCOMING" --msgbox "Only accept incoming connections where the remote callsign match this regular expression. If the callsign doesn't match, a message will be sent to the remote station indicating that the connection was rejected. The DROP_INCOMING and REJECT_INCOMING directives will be evaluated before ACCEPT_INCOMING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       REJOG) whiptail --title "REJECT_OUTGOING" --msgbox "Reject all outgoing connections where the remote callsign match this regular expression. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       ACCPTOG) whiptail --title "ACCEPT_OUTGOING" --msgbox "Only accept outgoing connections where the remote callsign match this regular expression. The REJECT_OUTGOING directive will be evaluated before ACCEPT_OUTGOING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       REJCONF) whiptail --title "REJECT_CONF" --msgbox "Text In The Works" 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       NRCONN) whiptail --title "CHECK_NR_CONNECTS" --msgbox "If a station connects to often it can be blocked for a configurable time span. Example: CHECK_NR_CONNECTS=3,300,120 If a station connects more than 3 times with less than 300 seconds in between each connect, that station will be rejected for 120 minutes." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       SERVERS) whiptail --title "SERVERS" --msgbox "A space separated list of IP addresses or names of the Echolink directory servers to use. The specified servers will be tried in order until one is found that works. SvxLink will then stick to that server. If that server fail, SvxLink will again try the next server in the list and when the end of the list has been reached, the search start from the beginning again. Hostnames that resolve to multiple IP addresses, like servers.Echolink.org, will also be correctly handled so that all returned IP addresses will be tried if necessary." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       CALLSIGN) whiptail --title "CALLSIGN" --msgbox "The callsign to use to login to the Echolink directory server. -L for a  Link connection or -R for Repeater Connection" 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       SYSOPNAME) whiptail --title "SYSOPNAME" --msgbox "The name of the person or club that is responsible for this system." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       PASSWORD) whiptail --title "PASSWORD" --msgbox "The Echolink directory server password to use." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       LOCATION) whiptail --title "LOCATION" --msgbox "The location of the station. Note: In the default configuration file the value of this configuration variable starts with "[Svx]". This is of course not necessary but it's fun to see which other stations are running SvxLink." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       PROXSERV) whiptail --title "PROXY_SERVER" --msgbox "If set, connect to the given Echolink proxy server host. All Echolink connections, both incoming and outgoing, will then go through the proxy." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       PROXPORT) whiptail --title "PROXY_PORT" --msgbox "Set the TCP port used for connecing to an Echolink proxy server. Default is 8100."  2 80 1
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       PROXPWD) whiptail --title "PROXY_PASSWORD" --msgbox "Set the Echolink proxy password used when connecting to an Echolink proxy server. Use the password PUBLIC for public proxy servers." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       QSOS) whiptail --title "MAX_QSOS" --msgbox "The maximum number of stations that can participate in a conference QSO on this node. If more stations try to connect, the connect request will be rejected." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       GSM) whiptail --title "USE_GSM_ONLY" --msgbox "On smaller systems with a less powerful CPU it is a good idea to prevent SvxLink from switching into the Speex codec when another SvxLink station is connecting via Echolink. If this param is set to 1 SvxLink remains in the default codec (GSM)." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       LANG) whiptail --title "DEFAULT_LANG" --msgbox "Set the language to use for announcements sent to remote Echolink stations. If not set, it will be the same as the one chosen for the logic core. The reason for setting this up may be that you want one language for the core and another language for annoncements sent to remote Echolink stations." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       MAXCONN) whiptail --title "MAX_CONNECTIONS" --msgbox "When more stations than specified in MAX_QSOS try to connect, a connection will temporarily be established long enough to play a message telling the remote station that the connection was rejected. The connection is then immediately terminated. If the number of connections exceeds MAX_CONNECTIONS, the connect request is just ignored. This variable is typically set to MAX_QSOS+1 or more if using a large number for MAX_QSOS." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       IDLETIME) whiptail --title "LINK_IDLE_TIMEOUT" --msgbox "The number of seconds that a connection is idle before disconnection will occur. This is to prevent a link to stay open if someone forget to disconnect. Disable this feature by setting this config variable to zero (or comment it out)." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       AUTOCONID) whiptail --title "AUTOCON_Echolink_ID" --msgbox "Set this variable to an Echolink ID that you want to automatically connect to. SvxLink will autoconnect only when no other station is connected." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       AUTOTIME) whiptail --title "AUTOCON_TIME" --msgbox "Set this to the time in seconds that you want in between autoconnect tries." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       DESCRIPTION) whiptail --title "DESCRIPTION" --msgbox "A longer description that is sent to remote stations upon connection. This description should typically include detailed station information like QTH, transceiver frequency/power, antenna, CTCSS tone frequency etc." 25 80
+            #Return to This Menu
+            TARGETMENUID=12
+            ;;
+       EXPRESSIONS)
+ whiptail --title "REGULAR EXPRESSIONS" --msgbox "
+ Regular expressions are used in the DROP, REJECT and ACCEPT configuration variables. A regular expression can be quite complex and the syntax is fully described in the regex(7) manual page. This is just a quick tutorial for the most important features.
+ ^ match the beginning of a string.
+ $ match the end of a string.
+ . match one character.
+ * match the previous expression zero or more times.
+ | match the expression before OR after the |.
+ \\ escape the following character. Note that backslash is also parsed by the SvxLink configuration parser so a backslash must actually be typed as two. For example to include a * in the matching pattern it must be escaped as \\*.
+ () grouping an expression.
+ [] match any of the characters inside of the brackets. Some examples:
+ ^(AB1CDE|BA5CBA-L)$ Match AB1CDE or BA5CBA-L.
+ ^(AB1CDE-[LR])$ Match AB1CDE-L or AB1CDR-R.
+ ^(AB1.*)$ Match all callsigns starting with AB1.
+ ^(\\\\*.*\\\\*)$ Match all conference callsigns. We need to escape the star character since it would otherwise be parsed by the regular expression parser. We also need two backslah characters so that the SvxLink configuration reader doesn't parse it as an escape sequence. The matches in SvxLink are case insensitive so "sm3" and "SM3" are the same. SvxLink use extended regular expressions (see regex(7) ). You almost always want to start the regular expression with ^( and end it with )$ so that the whole callsign will be used in the match." 30 90 1
+            #Return to This Menu
+            TARGETMENUID=13
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=13
+Svxlink_Networking_Menu() {
+	TARGETMENUID=0
+	WHIP_TITLE='---------- Svxink Networking Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"Eth0" "Echolink Configuration Menu" \
+    	"Eth0_DHCP" "Echolink Configuration Menu" \
+    	"IPv6" " Enable/Disable IPv6" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+      Eth0)
+            REBOOT_REQUIRED=1
+            Address=""
+			Gateway=""
+			Netmask=""
+			DNS_Server=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" \
+        --backtitle "Eth0 Net Configuration" \
+        --title "Eth0 Config" --form "Eth0" \
+		20 70 0 \
+        	"Address:"     1 1    "$Address"        1 16 16 0 \
+        	"Gateway:"     2 1    "$Gateway"        2 16 16 0 \
+        	"Netmask:"     3 1    "$Netmask"        3 16 16 0 \
+        	"DNS_Server:"  4 1    "$DNS_Server"     4 16 65 0 \
+		2>&1 1>&3); } 3>&1
+		# close fd
+		exec 3>&-
+		printf '%s\n' '/dhcp/' "s/dhcp/static/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/address/' "s/address.*/address ${array[0]}/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/gateway/' "s/gateway.*/gateway ${array[1]}/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/netmask/' "s/netmask.*/netmask ${array[2]}/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/dns-nameserver/' "s/dns-nameserver.*/dns-nameserver ${array[3]}/" w q  | ex /etc/network/interfaces
+        #Return to This Menu
+        TARGETMENUID=5
+        ;;
+      Eth0_DHCP)
+        REBOOT_REQUIRED=1
+        sed -i "/iface eth/c\iface eth0 inet dhcp" /etc/network/interfaces
+        printf '%s\n' '/address/' "s/address.* /#address/" w q  | ex /etc/network/interfaces
+        printf '%s\n' '/gateway/' "s/gateway.*/#gateway/" w q  | ex /etc/network/interfaces
+        printf '%s\n' '/netmask/' "s/netmask.*/#netmask/" w q  | ex /etc/network/interfaces
+        printf '%s\n' '/dns-nameserver/' "s/dns-nameserver.*/#dns-nameserver/" w q  | ex /etc/network/interfaces
+        #Return to This Menu
+        TARGETMENUID=13
+        ;;
+	  IPv6)
+			#Disable
+			if (( $ipv6_enabled == 1 )); then
+				whiptail --title "Disable IPv6?" --yesno "IPv6 is currently enabled. Would you like to disable it?\n\n - A system restart is required for settings to take effect.\n - Disabling IPv6 may break certain programs that rely on it." --yes-button "Ok" --no-button "Back" --defaultno --backtitle "$WHIP_BACKTITLE" 11 70
+				CHOICE=$?
+				#Confirm action
+				if (( $CHOICE == 0 )); then
+					echo -e "blacklist ipv6" > /etc/modprobe.d/blacklist-ipv6.conf
+					sed -i "/net.ipv6.conf.all.disable_ipv6 /c\net.ipv6.conf.all.disable_ipv6 = 1" /etc/sysctl.conf
+					sed -i "/net.ipv6.conf.default.disable_ipv6 /c\net.ipv6.conf.default.disable_ipv6 = 1" /etc/sysctl.conf
+					sed -i "/net.ipv6.conf.lo.disable_ipv6 /c\net.ipv6.conf.lo.disable_ipv6 = 1" /etc/sysctl.conf
+					REBOOT_REQUIRED=1
+				fi
+
+			#Enable
+			elif (( $ipv6_enabled == 0 )); then
+				whiptail --title "Enable IPv6?" --yesno "IPv6 is currently disabled. Would you like to enable it?\n\n - NB: A system restart is required for settings to take effect." --yes-button "Ok" --no-button "Back" --defaultno --backtitle "$WHIP_BACKTITLE" 10 70
+				CHOICE=$?
+				#Confirm action
+				if (( $CHOICE == 0 )); then
+					rm /etc/modprobe.d/blacklist-ipv6.conf &> /dev/null
+					sed -i "/net.ipv6.conf.all.disable_ipv6 /c\net.ipv6.conf.all.disable_ipv6 = 0" /etc/sysctl.conf
+					sed -i "/net.ipv6.conf.default.disable_ipv6 /c\net.ipv6.conf.default.disable_ipv6 = 0" /etc/sysctl.conf
+					sed -i "/net.ipv6.conf.lo.disable_ipv6 /c\net.ipv6.conf.lo.disable_ipv6 = 0" /etc/sysctl.conf
+					REBOOT_REQUIRED=1
+				fi
+			fi
+			#Return to this Menu
+			TARGETMENUID=13
+			;;
+	esac
+    fi
+}
+
+#TARGETMENUID=14
+Svxlink_Relay_Menu() {
+	TARGETMENUID=0
+	WHIP_TITLE='---------- Relay Configuration Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+    	"SvxLink_Relay_Conf" "Configure Replay Gpio Pins For Each Relay" \
+    	"Relay_Access_Pin" "Configure Pin for Relay Access via DTMF" \
+    	"Momentary_Delay" "How long to short burst the relay" \
+    	"Relay_Help" "Help File for Reote Relays" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+     SvxLink_Relay_Conf)
+            RESTART_SVXLINK_REQUIRED=1
+            check_RemoteRelay
+            set_Svxlink_relays
+            #Return to This Menu
+            TARGETMENUID=14
+            ;;
+     Relay_Access_Pin)
+            RESTART_SVXLINK_REQUIRED=1
+            Change_Relay_Pin
+            #Return to This Menu
+            TARGETMENUID=14
+            ;;
+     Momentary_Delay)
+            RESTART_SVXLINK_REQUIRED=1
+            DELAY=""
+			{
+			mapfile -t array < <(dialog --ok-label "Submit" \
+        		--backtitle "MOMENTARY_DELAY Configuration" \
+		        --title "Delay Config" --form "Delay" \
+			20 70 0 \
+     			   "DELAY:"     1 1    "$DELAY"        1 5 4 0 \
+     		2>&1 1>&3); } 3>&1
+			# close fd
+			exec 3>&-
+			printf '%s\n' '/MOMENTARY_DELAY=/' "s/MOMENTARY_DELAY=.*/MOMENTARY_DELAY=$DELAY/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf 
+
+            #Return to This Menu
+            TARGETMENUID=14
+            ;;
+     Relay_Help)
+            RemoteRelays-Help
+            TARGETMENUID=14
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=15
+Svxlink_Weather_Menu() {
+TARGETMENUID=0
+	WHIP_TITLE='---------- WeatherStation Configuration Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+		"Install" "Install WeeWx and configure for first Time Use" \
+    	"Reconfigure" "Reconfigure WeeWex setup for your location" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+     Install)
+     		RESTART_SVXLINK_REQUIRED=1
+            check_WeatherStation
+            wget http://weewx.com/downloads/weewx_3.5.0-1_all.deb && dpkg -i weewx_3.5.0-1_all.deb && rm weewx_3.5.0-1_all.deb
+            # edit /usr/bin/wee_device
+            sed -i /usr/bin/wee_device -e "s#print 'Using configuration file %s' % config_fn#\# print 'Using configuration file %s' % config_fn#"
+            sed -i /usr/bin/wee_device -e "s#print 'Using %s driver version %s (%s)' % (#\#print 'Using %s driver version %s (%s)' % (#"
+            sed -i /usr/bin/wee_device -e "s#driver_name, driver_vers, driver)#\#driver_name, driver_vers, driver)#"
+            TARGETMENUID=15
+            ;;
+     Reconfigure)
+            RESTART_SVXLINK_REQUIRED=1
+            check_WeatherStation
+            wee_config --reconfigurre
+            #Return to This Menu
+            TARGETMENUID=15
+            ;;
+    esac
+    fi
+}
+
+#TARGETMENUID=16
+Svxlink_Sstv_Menu() {
+TARGETMENUID=0
+	WHIP_TITLE='---------- SlowScan TV Configuration Menu ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
+		"Hohneck" "Hohneck Pole Mounted Webcam setup" \
+		"TclSSTV" "Configure TclSSTV" \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPTION" in
+    	Hohneck)
+    		RESTART_SVXLINK_REQUIRED=1
+   	    	check_TclSSTV
+			web_url=""
+			jpg_name=""
+			storage_dir=""
+			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Hohneck Web Cam Setup" --title "Hohneck Cam Setup" --form "Hohneck Setup" 20 70 0 \
+       		"WEB_URL:"      1 1   "$web_url"      1 22 30 0 \
+       		"JPG_NAME:"     2 1   "$jpg_name"     2 22 5 0 \
+    		"STORAGE_DIR:"  3 1   "$storage_dir"  3 22 5 0 \
+    		2>&1 1>&3);  3>&1
+			cat >> /etc/crontab <<DELIM
+\* /5 \* 6-22 \* 0 sudo wget -O "$web_url"/"$jpg_name" "$storage_dir"/"$(date +\%d_\%m_\%Y_\%m_\%M).jp"
+DELIM
+			cat >> /etc/crontab <<DELIM
+\* /5 \* /5 \* 6-22 \* sudo wget "$web_url"/"$jpg_name"
+DELIM
+			TARGETMENUID=16
+            ;;
+	TclSSTV)
+	    	RESTART_SVXLINK_REQUIRED=1
+    		check_TclSSTV
+    		tlcsstv_conf
+    		TARGETMENUID=16
+            ;;
+    esac
+    fi
+}
+
+# Main Loop
+while (( TARGETMENUID > -1 )); do
+	#Clear Screen buffer
+	Changes_Made
+	clear
+	if (( TARGETMENUID == 0 )); then
+		Main_Menu
+	elif (( TARGETMENUID == 1 )); then
+		Advanced_Menu
+	elif (( TARGETMENUID == 2 )); then
+		Intl_Menu
+	elif (( TARGETMENUID == 3 )); then
+		Svxlink_Main_Menu
+	elif (( TARGETMENUID == 4 )); then
+		Svxlink_Config_Menu
+	elif (( TARGETMENUID == 5 )); then
+		Svxlink_Modules_Menu
+	elif (( TARGETMENUID == 6 )); then
+		Svxlink_Advanced_Menu
+	elif (( TARGETMENUID == 7 )); then
+		Svxlink_Service_Menu
+	elif (( TARGETMENUID == 8 )); then
+		Svxlink_Boards_Menu
+	elif (( TARGETMENUID == 9 )); then
+		Svxlink_Help_Menu
+	elif (( TARGETMENUID == 10 )); then
+		Echolink_Main_Menu
+	elif (( TARGETMENUID == 11 )); then
+		Echolink_Advanced_Menu
+	elif (( TARGETMENUID == 12 )); then
+		Echolink_Help_Menu
+	elif (( TARGETMENUID == 13 )); then
+		Svxlink_Networking_Menu
+	elif (( TARGETMENUID == 14 )); then
+		Svxlink_Relay_Menu
+	elif (( TARGETMENUID == 15 )); then
+		Svxlink_Weather_Menu
+	elif (( TARGETMENUID == 16 )); then
+		Svxlink_Sstv_Menu
+	fi
+done
+exit
+}
