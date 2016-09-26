@@ -58,9 +58,9 @@ if [[ $2 =~ ^-?[0-9]+$ ]]; then
 	TEXT_MENU_BACK="Back"
 fi
 
-WHIP_BACKTITLE='Svxlink Amature Radio Repeater Interface System'
-WHIP_TITLE='Svxlink Amature Radio Repeater Interface System'
-WHIP_QUESTION='Svxlink Amature Radio Repeater Interface System'
+WHIP_BACKTITLE='Svxlink Amature Radio Repeater Interface System by KB3VGW'
+WHIP_TITLE='Svxlink Amature Radio Repeater Interface System by KB3VGW'
+WHIP_QUESTION='Svxlink Amature Radio Repeater Interface System by KB3VGW'
 
 CHOICE=0
 OPTION=0
@@ -153,7 +153,7 @@ Menu_Exit(){
 	# TARGETMENUID = -1 , if we are to exit the menu
 
 	# The good old "Are you really sure" question.
-	WHIP_TITLE=' Exit Svxlink Pi Config ? '
+	WHIP_TITLE=' Exit Svxlink-Config ? '
 	WHIP_QUESTION=' Exit Svxink_config? '
 	whiptail --title "$WHIP_TITLE" --yesno "$WHIP_QUESTION" --yes-button "Ok" --no-button "Back" --defaultno --backtitle "$WHIP_BACKTITLE" 10 50
 	CHOICE=$?
