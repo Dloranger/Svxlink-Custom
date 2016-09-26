@@ -58,7 +58,7 @@ td.bar div {
 <script language="JavaScript" type="text/JavaScript">
 if (typeof EventSource !== 'function') {        // Attempt to fix IE
     $.ajaxSetup({ cache: true });
-    $.getScript("EventSource.js",function(data,textStatus,jqxhr) {
+    $.getScript("EventSource2.js",function(data,textStatus,jqxhr) {
         setTimeout(getlist,500);
     });
 } else {
@@ -66,7 +66,7 @@ if (typeof EventSource !== 'function') {        // Attempt to fix IE
 }
 
 function getlist() {
-    $.getJSON('/repeaters.json',repeaterlist);
+    $.getJSON('/repeaters2.json',repeaterlist);
 }
 
 function repeaterlist(list) {
