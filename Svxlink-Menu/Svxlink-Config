@@ -1357,7 +1357,7 @@ logics=${config[GLOBAL.LOGICS]}
     fi
   done <<< "$OPTION"
   selected=${selected%,}
-  cp -r /usr/share/Svxlink/sounds/Courtesy_Tones/"$selected".wav /usr/share/Svxlink/sounds/Custom_Courtesy_Tones/Courtesy_Tone.wav
+  cp /usr/share/Svxlink/sounds/Courtesy_Tones/"$selected".wav /usr/share/Svxlink/sounds/tone.wav
             #Return to This Menu
             TARGETMENUID=4
             ;;
