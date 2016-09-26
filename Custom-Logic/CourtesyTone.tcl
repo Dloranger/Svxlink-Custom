@@ -90,8 +90,13 @@ namespace eval Logic {
 		#
 
 		proc send_rgr_sound {} {
-		  playFile "/usr/share/svxlink/sounds/custom_courtesy_tones/Courtesy_Tone.wav"
-		  playSilence 200
+		  if {-f /usr/share/svxlink/sounds/Custom_Courtesy_Tones/Courtesy_Tone.wav ]; then
+		    playFile "/usr/share/svxlink/sounds/Custom_Courtesy_Tones/Courtesy_Tone.wav"
+		    playSilence 200
+		  else
+		    playFile "/usr/share/svxlink/sounds/tone.wav"
+		    playSilence 200
+		  fi
 		}
 		
 # end of namespace
