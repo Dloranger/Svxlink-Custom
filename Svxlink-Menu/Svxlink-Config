@@ -1600,7 +1600,7 @@ Svxlink_Boards_Menu() {
     	"Test_Relays" " Test Board Relays " OFF \
     	"Test_Inputs" " Test Board Inputs " OFF \
     	"Test_RS232" " Test Board Serial Port " OFF \
-    	"Test_Tempature" " Test Onboard Temp Sensor " OFF \
+    	"Test_Temperature" " Test Onboard Temp Sensor " OFF \
     3>&1 1>&2 2>&3 || : )
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
@@ -1628,7 +1628,7 @@ Svxlink_Boards_Menu() {
             ;;
       Test_Tempature)
             gpio_setup.sh
-            test-tempature.py
+            test-temperature.py
             gpio_tear_down.sh
             #Return to This Menu
             TARGETMENUID=8
