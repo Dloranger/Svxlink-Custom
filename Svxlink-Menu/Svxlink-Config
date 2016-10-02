@@ -808,6 +808,10 @@ DELIM
 			AuthPass=""
 			FromLineOverride=""
 			UseSTARTTLS=""
+			LANG=""
+			emailtitle=""
+			emailacct=""
+			
 				{
 				mapfile -t array < <(dialog --ok-label "Submit" --backtitle "SSMTP Setup" --title "SSMTP Setup" --form "SSMTP" 20 70 0 \
 					"root:"	            1 1 "$root"             1 25 25 0 \
@@ -815,8 +819,11 @@ DELIM
 					"hostanme:"         3 1 "$hostname"         1 25 25 0 \
 					"AuthUser:"         4 1 "$AuthUser"         1 25 25 0 \
 					"AuthPass:"         5 1 "$AuthPass"         1 25 25 0 \
-					"FromLineOverride:"6 1 "$FromLineOverride"1 3 3 0 \
+					"FromLineOverride:" 6 1 "$FromLineOverride" 1 3 3 0 \
 					"UseSTARTTLS:"      7 1 "$UseSTARTTLS"      1 3 3 0 \
+					"LANG:"             8 1 "$LANG"             1 5 5 0 \
+					"emailtitle:"       9 1 "$emailtitle"       1 25 25 0 \
+					"emailacct:"        10 1 "$emailacct"       1 25 25 0 \
 				2>&1 1>&3); } 3>&1
 	cat > /etc/ssmtp/ssmtp.conf << DELIM
 	root=${array[0]}
@@ -826,6 +833,9 @@ DELIM
 	AuthPass==${array[4]}
 	FromLineOverride=${array[5]}
 	UseSTARTTLS=${array[6]}
+DELIM
+cat >> /etc/crontab << DELIM
+\* /5 \* /5 \* \* \* sudo grep "$(LANG=${array[7]} date +%b\ %d\ ..:..:..\ %Y): Station " /var/log/svxlink | mail -s "${array[8]}" ${array[9]}
 DELIM
 			service ssmtp restart
             #Return to This Menu
