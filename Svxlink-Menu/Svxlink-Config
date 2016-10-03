@@ -82,6 +82,12 @@ first_run
 touch /etc/svxlink/.1st
 fi
 
+#Set New Root Passwd
+if [ ! -f /etc/svxlink/.pwd ]; the
+Change_Password_Root
+touch /etc/svxlink/.pwd
+fi
+
 #Select Svxlink Audio Files
 if [ ! -f /etc/svxlink/.snds ]; then
 select_sounds
@@ -227,7 +233,6 @@ Change_Password_Root(){
 	fi
 }
 
-
 Config-GPIO() {
 RESTART_SVXLINK_REQUIRED=1
 WHIP_TITLE1='---------- Select Repeater Boards ----------'
@@ -372,7 +377,6 @@ select_language() {
 	OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
     "en_US" "Enable English Language" ON \
     "fr_FR" "Enable French Language" OFF \
-    "sv_SE" "Enable Swediash Language" OFF \
     3>&1 1>&2 2>&3 || : )
 
   while read -r option; do
@@ -396,7 +400,6 @@ select_sounds() {
     OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 25 50 10 \
     "English" " Enable English Sounds  " ON \
     "French" " Enable French Sounds " OFF \
-    "Swedish" " Enable Swediash Sounds" OFF \
     3>&1 1>&2 2>&3 || : )
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
