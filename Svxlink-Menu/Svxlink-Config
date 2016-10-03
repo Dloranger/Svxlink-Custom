@@ -967,15 +967,15 @@ Svxlink_Config_Menu() {
 	OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
 	"ModuleHelp" "Help Module" ON \
 	"ModuleParrot" "Parrot Module" ON  \
-	"ModuleEchoLink" "Echolink Module" ON \
-	"ModuleFrn" "FreeRadio NetWork Module" ON \
+	"ModuleEchoLink" "Echolink Module" OFF \
+	"ModuleFrn" "FreeRadio NetWork Module" OFF \
 	"ModuleTclVoiceMail" "TclVoiceMail Module" OFF \
 	"ModuleMetarInfo" "MetarInfo Module" OFF \
 	"ModuleDtmfRepeater" "DtmfRepeater Module" ON \
 	"ModulePropagationMonitor" "PropagationMonitor Module" OFF \
 	"ModuleSelCallEnc" "SelCallEnc Module" OFF \
-	"ModuleRemoteRelay" "RemoteRelay Module" ON \
-	"ModuleTclSSTV" "SlowScan TV Module" ON \
+	"ModuleRemoteRelay" "RemoteRelay Module" OFF \
+	"ModuleTclSSTV" "SlowScan TV Module" OFF \
 	3>&1 1>&2 2>&3 || : )
   	while read -r option; do
     		if [[ $option = Module@(Help|Parrot|EchoLink|Frn|TclVoiceMail|MetarInfo|DtmfRepeater|PropagationMonitor|SelCallEnc|RemoteRelay|TclSSTV) ]]; then
