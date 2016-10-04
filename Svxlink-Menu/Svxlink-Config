@@ -414,7 +414,7 @@ select_sounds() {
          mkdir -p /root/sounds_en/Custom_Courtesy_Tones
          ln -s /root/sounds_en/Custom_Courtesy_Tones /usr/share/svxlink/sounds/Custom_Courtesy_Tones
          mkdir -p /root/sounds_en/Custom_Identification
-         ln -s /root/sounds_en/Custom_identification /usr/share/svxlink/sounds/en_US/Custom_Identification
+         ln -s /root/sounds_en/Custom_identification /usr/share/svxlink/sounds/Custom_Identification
          fi
          ;;
       French)
@@ -427,7 +427,7 @@ select_sounds() {
 	     mkdir -p /root/sounds_fr/Custom_Courtesy_Tones
 	     ln -s /root/sounds_fr/Custom_Courtesy_Tones /usr/share/svxlink/sounds/Custom_Courtesy_Tones
 	     mkdir -p /root/sounds_fr/Custom_Identification
-	     ln -s /root/sounds_fr/Custom_identification /usr/share/svxlink/sounds/fr_FR/Custom_Identification
+	     ln -s /root/sounds_fr/Custom_identification /usr/share/svxlink/sounds/Custom_Identification
 	     fi
          ;;
     esac
