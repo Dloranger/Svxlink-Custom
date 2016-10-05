@@ -83,7 +83,7 @@ touch /etc/svxlink/.1st
 fi
 
 #Set New Root Passwd
-if [ ! -f /etc/svxlink/.pwd ]; the
+if [ ! -f /etc/svxlink/.pwd ]; then
 Change_Password_Root
 touch /etc/svxlink/.pwd
 fi
