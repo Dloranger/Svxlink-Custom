@@ -1617,12 +1617,12 @@ Svxlink_Service_Menu() {
             TARGETMENUID=7
             ;;
       Enable-SvxLink)
-            systemctl enable Svxlink.service
+            systemctl enable svxlink.service
             #Return to This Menu
             TARGETMENUID=7
             ;;
       Disable-SvxLink)
-            systemctl disable Svxlink.service
+            systemctl disable svxlink.service
             #Return to This Menu
             TARGETMENUID=7
             ;;
