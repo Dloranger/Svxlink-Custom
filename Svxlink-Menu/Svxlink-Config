@@ -1305,7 +1305,7 @@ selected=${selected%,}
 			printf '%s\n' '/\[LocationInfo]/' '/LAT_POSITION=/' "s/#LAT_POSITION=.*/LAT_POSITION=${array[3]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/CALLSIGN=/' "s/#CALLSIGN=.*/CALLSIGN=${array[4]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/FREQUENCY=/' "s/#FREQUENCY=.*/FREQUENCY=${array[5]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/TX_POWER=/' "s/#TX_POWER=.*/TX_POWER=${array[6]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[LocationInfo]/' '/TX_POWER=/' "s/#TX\_POWER=.*/TX_POWER=${array[6]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_GAIN=/' "s/#ANTENNA_GAIN=.*/ANTENNA_GAIN=${array[7]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_HEIGHT=/' "s/#ANTENNA_HEIGHT=.*/ANTENNA_HEIGHT=${array[8]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_DIR=/' "s/#ANTENNA_DIR=.*/ANTENNA_DIR=${array[9]}/" w q  | ex /etc/svxlink/svxlink.conf
