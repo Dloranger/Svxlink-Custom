@@ -163,11 +163,9 @@ Menu_Exit(){
 	WHIP_QUESTION=' Exit Svxink_config? '
 	whiptail --title "$WHIP_TITLE" --yesno "$WHIP_QUESTION" --yes-button "Ok" --no-button "Back" --defaultno --backtitle "$WHIP_BACKTITLE" 10 50
 	CHOICE=$?
-
 	#Exit
 	if (( CHOICE == 0 )); then
 		TARGETMENUID=-1
-
         #Changes_Made() {
         # Svxlink Restart Required
         if(( RESTART_SVXLINK_REQUIRED == 1 )); then
@@ -181,7 +179,6 @@ Menu_Exit(){
             fi
         fi
         #}
-
 		# Reboot Required
 		if(( REBOOT_REQUIRED == 1 )); then
 			WHIP_TITLE=' Changes Made - Reboot Now? '
@@ -439,7 +436,6 @@ select_sounds() {
     esac
     fi
 }
-
 
 _whiptail() {
     local args combo card channel1 channel2 tmp
@@ -815,7 +811,6 @@ Advanced_Menu() {
     		"ttyUSB2" " Select USB Port 2 " OFF \
     		"ttyUSB3" " Select USB Port 3 " OFF \
      		3>&1 1>&2 2>&3)
-
       		while read -r option; do
     		if [[ $option = @(ttyS0|ttyS1|ttyS2|ttyS3|ttyUSB0|ttyUSB1|ttyUSB2|ttyUSB3) ]]; then
       			selected+=$option,
@@ -824,9 +819,7 @@ Advanced_Menu() {
       			declare -p option option
     		fi
 			done <<< "$OPTION"
-
 	    selected=${selected%,}
-
 	    printf '%s\n' '/DEVICES=/' "s/DEVICES=.*/DEVICES=\"$selected\"/" w q | ex /etc/default/gpsd
 	    touch /usr/bin/set-time.sh
 	    cat > /usr/bin/set-time.sh << DELIM
@@ -839,7 +832,7 @@ DELIM
       	    TARGETMENUID=1
       	    ;;
       SSMTP)
-
+			config_ssmtp
             #Return to This Menu
       	    TARGETMENUID=1
             ;;
@@ -927,7 +920,6 @@ Svxlink_Main_Menu() {
 # SxvLink Config Menus
 Svxlink_Config_Menu() {
 	TARGETMENUID=0
-   
     OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
 	"CallSign" "Set/Change Repeater Call Sign" \
 	"Modules" "Enable/Disable SvxLink Modules" \
@@ -1259,7 +1251,6 @@ selected=${selected%,}
 				"Freqency:"				12 1 "$FQ"                  12 15 15 0 \
 				"WBRX:"					13 1 "$WBRX"                13 15 15 0 \
 			2>&1 1>&3); } 3>&1
-
 			printf '%s\n' '/\[RU1]/' '/TYPE=/' "s/#TYPE=.*/TYPE=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[RU1]/' '/SQL_DET=/' "s/#SQL_DET=.*/SQL_DET=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[RU1]/' '/SIGLEV_DET=/' "s/#SIGLEV_DET=.*/SIGLEV_DET=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
@@ -1308,7 +1299,6 @@ selected=${selected%,}
         	"TONE:"                 13 1   "$TONE"                13 15 10 0 \
         	"COMMENT:"              14 1   "$COMMENT"             14 15 40 0 \
 		2>&1 1>&3); } 3>&1
-			printf '%s\n' '/\[GLOBAL]/' '/LOCATION_INFO=/' "s/#LOCATION_INFO=.*/LOCATION_INFO=/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/APRS_SERVER_LIST=/' "s/APRS_SERVER_LIST=.*/APRS_SERVER_LIST=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/STATUS_SERVER_LIST=/' "s/#STATUS_SERVER_LIST=.*/STATUS_SERVER_LIST=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[LocationInfo]/' '/LON_POSITION=/' "s/#LON_POSITION=.*/LON_POSITION=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
@@ -1416,7 +1406,7 @@ logics=${config[GLOBAL.LOGICS]}
     fi
   done <<< "$OPTION"
   selected=${selected%,}
-  cp /usr/share/Svxlink/sounds/Courtesy_Tones/"$selected".wav /usr/share/Svxlink/sounds/tone.wav
+  cp /usr/share/Svxlink/sounds/Courtesy_Tones/"$selected".wav /usr/share/svxlink/sounds/tone.wav
             #Return to This Menu
             TARGETMENUID=4
             ;;
@@ -1442,7 +1432,6 @@ declare -A config=()
    fi
    config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-
 			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/FX_GAIN_NORMAL=/' "s/FX_GAIN_NORMAL=.*/FX_GAIN_NORMAL=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/FX_GAIN_LOW=/' "s/FX_GAIN_LOW=.*/FX_GAIN_LOW=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
             #Return to This Menu
