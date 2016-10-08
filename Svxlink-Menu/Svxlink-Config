@@ -305,10 +305,10 @@ printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"87 102\"/" w q
 printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"87 102\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
 printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"88 104\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
 printf '%s\n' '/GPIO_OUT_LOW=/' "s/GPIO_OUT_LOW=.*/GPIO_OUT_LOW=\"\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
-printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio19/" w q | ex /etc/svxlink/svxlink.conf
-printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio16/" w q | ex /etc/svxlink/svxlink.conf
-printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio18/" w q | ex /etc/svxlink/svxlink.conf
-printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio17/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio104/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio102/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio88/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio87/" w q | ex /etc/svxlink/svxlink.conf
 fi
 
 if [[ $selected2 == odroid-c2 ]] ; then
@@ -1948,7 +1948,7 @@ Echolink_Advanced_Menu() {
     	"ALLOW_IP" " Configure Allow Ip Range (192.168.1./24) " \
     	"DROP_INCOMING" " Drop Incoming CallSigns Match Regex " \
     	"REJECT_INCOMING" " Reject Incoming CallSigns Match RegEx " \
-    	"ACCEPT_INCOMING" " Accept Incoming CallSigns Match RegEx" \
+    	"ACCEPT_INCOMING" " Accept Incoming CallSigns Match RegEx " \
     	"REJECT_OUTGOING" " Reject Outgoing CallSigns Match RegEx " \
     	"ACCEPT_OUTGOING" " Accept Outgoing CallSigns Match RegEx " \
     	"REJECT_CONF" " Reject Conference Connections Match RegEx " \
