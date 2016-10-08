@@ -410,6 +410,9 @@ select_sounds() {
          tar xjvf Svxlink-sounds-en_US-laura-16k-15.11.2.tar.bz2
          mv en_US-laura-16k /usr/share/Svxlink/sounds/en_US
          rm Svxlink-sounds-en_US-laura-16k-15.11.1.tar.bz2
+         #install coutresytones
+         git clone https://github.com/kb3vgw/Svxlink-Courtesy_Tones.git Courtesy_Tones
+		 mv Courtesy_Tones /usr/share/svxlink/sounds
          #Make and Link Custome Sound Dir
          mkdir -p /root/sounds_en/Custom_Courtesy_Tones
          ln -s /root/sounds_en/Custom_Courtesy_Tones /usr/share/svxlink/sounds/Custom_Courtesy_Tones
@@ -423,6 +426,9 @@ select_sounds() {
          tar xjvf svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
          mv fr_FR-heather-16k /usr/share/Svxlink/sounds/fr_FR
          rm svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
+         #install coutresytones
+         git clone https://github.com/kb3vgw/Svxlink-Courtesy_Tones.git Courtesy_Tones
+		 mv Courtesy_Tones /usr/share/svxlink/sounds
          #Make and Link Custome Sound Dir
 	     mkdir -p /root/sounds_fr/Custom_Courtesy_Tones
 	     ln -s /root/sounds_fr/Custom_Courtesy_Tones /usr/share/svxlink/sounds/Custom_Courtesy_Tones
