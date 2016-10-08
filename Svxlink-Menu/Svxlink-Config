@@ -758,7 +758,7 @@ Advanced_Menu() {
 	if (( CHOICE == 0 )); then
     case "$OPTION" in
       International)
-            International_Menu
+            Intl_Menu
             #Return to This Menu
       	    TARGETMENUID=1
       	    ;;
