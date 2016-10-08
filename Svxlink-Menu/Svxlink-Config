@@ -771,7 +771,7 @@ Advanced_Menu() {
 			git clone https://github.com/kb3vgw/Svxlink-Custom.git
 			chmod +x  Svxlink-Custom/Svxlink-Menu/Svxlink-Config 
 			cp -r Svxlink-Custom/Svxlink-Menu/Svxlink-Config  /usr/bin
-            rm -rf SVXLink-Custom
+            rm -rf Svxlink-Custom
             printf "Sleeping 5 seconds before reloading Svxlink_Config\n" &&
             sleep 5 &&
             exec Svxlink-Config
