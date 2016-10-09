@@ -699,6 +699,70 @@ cat >> /etc/crontab << DELIM
 DELIM
 }
 
+select_modules(){
+     WHIP_TITLE='---------- Enable\/Disable SvxLink Modules ----------'
+	OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
+	"ModuleHelp" "Help Module" ON \
+	"ModuleParrot" "Parrot Module" ON  \
+	"ModuleEchoLink" "Echolink Module" OFF \
+	"ModuleFrn" "FreeRadio NetWork Module" OFF \
+	"ModuleTclVoiceMail" "TclVoiceMail Module" OFF \
+	"ModuleMetarInfo" "MetarInfo Module" OFF \
+	"ModuleDtmfRepeater" "DtmfRepeater Module" ON \
+	"ModulePropagationMonitor" "PropagationMonitor Module" OFF \
+	"ModuleSelCallEnc" "SelCallEnc Module" OFF \
+	"ModuleRemoteRelay" "RemoteRelay Module" OFF \
+	"ModuleTclSSTV" "SlowScan TV Module" OFF \
+	3>&1 1>&2 2>&3 || : )
+  	while read -r option; do
+    		if [[ $option = Module@(Help|Parrot|EchoLink|Frn|TclVoiceMail|MetarInfo|DtmfRepeater|PropagationMonitor|SelCallEnc|RemoteRelay|TclSSTV) ]]; then
+      			selected+=$option,
+    		else
+      			whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      			declare -p option option
+    		fi
+  		done <<< "$OPTION"
+  		declare -A config=()
+  		while IFS='=' read -r key value; do
+    	if [[ -z $value && $key = "["*"]" ]]; then
+      	  section=${key#\[} section=${section%]}
+      	  continue
+    	else
+    	    if [[ -z $key || $key = \#* ]]; then
+		    continue
+		  fi
+		fi
+		config[$section.$key]=$value
+		done < /etc/svxlink/svxlink.conf
+		logics=${config[GLOBAL.LOGICS]}
+			selected=${selected%,}
+		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/svxlink.conf
+
+}
+set_modules() {
+  WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
+  OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+    "Rx1" " Select Reciever 1 Port" ON \
+    "Tx1" "Select Transmiter1 Port" OFF \
+    "Link" "Select Link Reciever port" OFF \
+    "LinkTX" "Select Link Transmiter port" OFF \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPT1" in
+      R) set "$OPT1"
+         ;;
+      Tx1) set "$OPT1"
+         ;;
+      LinkRx) set "$OPT1"
+         ;;
+      LinkTx) set "$OPT1"
+         ;;
+    esac
+    fi
+}
+
+
 first_run() {
 whiptail --msgbox "\
 
@@ -954,43 +1018,7 @@ Svxlink_Config_Menu() {
             ;;
       Modules)
         RESTART_SVXLINK_REQUIRED=1
-        WHIP_TITLE='---------- Enable\/Disable SvxLink Modules ----------'
-	OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
-	"ModuleHelp" "Help Module" ON \
-	"ModuleParrot" "Parrot Module" ON  \
-	"ModuleEchoLink" "Echolink Module" OFF \
-	"ModuleFrn" "FreeRadio NetWork Module" OFF \
-	"ModuleTclVoiceMail" "TclVoiceMail Module" OFF \
-	"ModuleMetarInfo" "MetarInfo Module" OFF \
-	"ModuleDtmfRepeater" "DtmfRepeater Module" ON \
-	"ModulePropagationMonitor" "PropagationMonitor Module" OFF \
-	"ModuleSelCallEnc" "SelCallEnc Module" OFF \
-	"ModuleRemoteRelay" "RemoteRelay Module" OFF \
-	"ModuleTclSSTV" "SlowScan TV Module" OFF \
-	3>&1 1>&2 2>&3 || : )
-  	while read -r option; do
-    		if [[ $option = Module@(Help|Parrot|EchoLink|Frn|TclVoiceMail|MetarInfo|DtmfRepeater|PropagationMonitor|SelCallEnc|RemoteRelay|TclSSTV) ]]; then
-      			selected+=$option,
-    		else
-      			whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
-      			declare -p option option
-    		fi
-  		done <<< "$OPTION"
-  		declare -A config=()
-  		while IFS='=' read -r key value; do
-    	if [[ -z $value && $key = "["*"]" ]]; then
-      	  section=${key#\[} section=${section%]}
-      	  continue
-    	else
-    	    if [[ -z $key || $key = \#* ]]; then
-		    continue
-		  fi
-		fi
-		config[$section.$key]=$value
-		done < /etc/svxlink/svxlink.conf
-		logics=${config[GLOBAL.LOGICS]}
-			selected=${selected%,}
-		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/svxlink.conf
+            select_modiles   		
             #Return to This Menu
             TARGETMENUID=4
             ;;
