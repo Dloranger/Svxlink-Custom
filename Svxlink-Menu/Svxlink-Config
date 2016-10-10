@@ -128,9 +128,7 @@ fi
       elif (( OPTION == 2 )); then
            TARGETMENUID=1
       elif (( OPTION == 3 )); then
-       whiptail --msgbox "This tool provides a straight-forward way of doing configuration of the Svxlink/Remotetrx Repeater Software. For Use with the SvxLINK Repeater Board. This is a always on Shell menu that will display everytime you login as the root user. I will make it a option for it to display for other users in the future. \
-       If you wish to be involved with this project. \
-       contact: kb3vgw@gmail.com" 20 55 1
+       whiptail --msgbox "This tool provides a straight-forward way of doing configuration of the Svxlink/Remotetrx Repeater Software. For Use with the SvxLINK Repeater Board. This is a always on Shell menu that will display everytime you login as the root user. I will make it a option for it to display for other users in the future. If you wish to be involved with this project. Contact: kb3vgw@gmail.com" 20 55 1
       else
 	       Menu_Exit
 		fi
@@ -310,14 +308,14 @@ fi
 
 if [[ $selected2 == odroid-c2 ]] ; then
 #configure Odroid C2 gpio
-printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
-printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
-printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
+printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"236 247\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
+printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"236 247\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
+printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"233 238\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
 printf '%s\n' '/GPIO_OUT_LOW=/' "s/GPIO_OUT_LOW=.*/GPIO_OUT_LOW=\"\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
-printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio/" w q | ex /etc/svxlink/svxlink.conf
-printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio/" w q | ex /etc/svxlink/svxlink.conf
-printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio/" w q | ex /etc/svxlink/svxlink.conf
-printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio238/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio247/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio233/" w q | ex /etc/svxlink/svxlink.conf
+printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio/236" w q | ex /etc/svxlink/svxlink.conf
 fi
 fi
 }
@@ -389,7 +387,6 @@ select_language() {
 
    printf '%s\n' '/DEFAULT_LANG=/' "s/DEFAULT_LANG=.*/DEFAULT_LANG=$selected/" w q  | ex /etc/svxlink/svxlink.conf
    printf '%s\n' '/\[ModuleEchoLink]/' '/DEFAULT_LANG=/' "s/DEFAULT_LANG=.*/DEFAULT_LANG=$selected/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
-
 }
 
 select_sounds() {
@@ -559,7 +556,7 @@ set_qso() {
     fi
 }
 
-check_Frn() {
+Check_Frn() {
 declare -A config=()
   while IFS='=' read -r key value; do
     if [[ -z $value && $key = "["*"]" ]]; then
@@ -573,12 +570,12 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 logics=${config[GLOBAL.LOGICS]}
-if  [[ ${config[$logics.MODULES]} = *,ModuleFrn,* ]]; then
-    frn_setup; else whiptail --title "FreeRadio Network Module" --msgbox " ModuleFrn Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
+if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleFrn,* ]] || [[ ${config[SimplexLogic.MODULES]} = *,ModuleFrn,* ]] ; then
+    Frn_Setup; else whiptail --title "FreeRadio Network Module" --msgbox " ModuleFrn Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
 }
 
-Check_Echolink() {
+Check_EchoLink() {
 declare -A config=()
   while IFS='=' read -r key value; do
     if [[ -z $value && $key = "["*"]" ]]; then
@@ -592,9 +589,8 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 logics=${config[GLOBAL.LOGICS]}
-
-if  [[ ",${config[$logics.MODULES]}," = *,ModuleEchoLink,* ]]; then
-    Echolink_Config; else whiptail --title "Echolink Module" --msgbox " ModuleEchoLink Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
+if  [[ ",${config[RepeaterLogic.MODULES]}," = *,ModuleEchoLink,* ]] || [[ ",${config[SimplexLogicLogic.MODULES]}," = *,ModuleEchoLink,* ]] ; then
+    EchoLink_Main_Menu; else whiptail --title "Echolink Module" --msgbox " ModuleEchoLink Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
 }
 
@@ -612,7 +608,7 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 logics=${config[GLOBAL.LOGICS]}
-if  [[ ${config[$logics.MODULES]} = *,ModuleRemoteRelay,* ]]; then
+if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleRemoteRelay,* ]] || [[ ${config[SimplexLogic.MODULES]} = *,ModuleRemoteRelay,* ]]; then
     RemoteRelay_setup; else whiptail --title "Remote Relay Module" --msgbox " ModuleRemoteRelay Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
 }
@@ -631,7 +627,7 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 logics=${config[GLOBAL.LOGICS]}
-if  [[ ${config[$logics.MODULES]} = *,ModuleWeatherSatation,* ]]; then
+if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleWeatherSatation,* ]] ||[[ ${config[SimplexLogic.MODULES]} = *,ModuleWeatherSatation,* ]]; then
    WeatherStation_setup; else whiptail --title "WeatherStation Module" --msgbox " ModuleWeatherStation Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
 }
@@ -650,15 +646,9 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 logics=${config[GLOBAL.LOGICS]}
-if  [[ ${config[$logics.MODULES]} = *,ModuleTclSSTV,* ]]; then
+if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleTclSSTV,* ]] || [[ ${config[SimplexLogic.MODULES]} = *,ModuleTclSSTV,* ]]; then
     sstv_setup; else whiptail --title "TclSSTV Module" --msgbox " ModuleTclSSTV Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
-}
-
-onboard_snd_pi() {
- # Enable audio (loads snd_bcm2835)
- sed -i /boot/config.txt -e"s#\#dtparam=audio=on#dtparam=audio=on#"
- sed -i /etc/modules -e"s#\#snd-bcm2835#snd-bcm2835#"
 }
 
 config_ssmtp() {
@@ -1018,7 +1008,7 @@ Svxlink_Config_Menu() {
             ;;
       Modules)
         RESTART_SVXLINK_REQUIRED=1
-            select_modiles   		
+            select_modules   		
             #Return to This Menu
             TARGETMENUID=4
             ;;
@@ -1486,15 +1476,16 @@ Svxlink_Modules_Menu() {
     case "$OPTION" in
       Echolink)
             RESTART_SVXLINK_REQUIRED=1
-            Check_Echolink
-            Echolink_Main_Menu
+            Check_EchoLink
+            #Echolink_Main_Menu
             #Return to This Menu
             TARGETMENUID=5
             ;;
       Frn)
             RESTART_SVXLINK_REQUIRED=1
-            Check_frn
+            Check_Frn
             whiptail --msgbox " Details http://freeradionetwork.eu/frnprotocol.htm " 10 25 2
+            Frn_setup() {
 			TIMEOUT=""
 			SERVER=""
 			PORT=""
@@ -1536,6 +1527,7 @@ Svxlink_Modules_Menu() {
 			printf '%s\n' '/\[ModuleFrn]/' '/COUNTRY=/' "s/COUNTRY=.*/COUNTRY=${array[9]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
 			printf '%s\n' '/\[ModuleFrn]/' '/CITY_CITY_PART=/' "s/CITY_CITY_PART=.*/CITY_CITY_PART=${array[10]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
 			printf '%s\n' '/\[ModuleFrn]/' '/NET=/' "s/NET=.*/NET=${array[11]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleFrn.conf
+			}
             #Return to This Menu
             TARGETMENUID=5
             ;;
@@ -1555,7 +1547,7 @@ Svxlink_Modules_Menu() {
             ;; 
       Sstv)
             RESTART_SVXLINK_REQUIRED=1
-            Check_sstv
+            Check_Sstv
             SvxLink_Sstv_Menu
             #Return to This Menu
             TARGETMENUID=5
@@ -1897,7 +1889,7 @@ X2# - Relay 1 Momentary
 }
 
 #TARGETMENUID=10
-Echolink_Main_Menu() {
+EchoLink_Main_Menu() {
 	TARGETMENUID=0
 	WHIP_TITLE='---------- Echolink Configuration Menu ----------'
 	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
@@ -1928,8 +1920,8 @@ Echolink_Main_Menu() {
         	"SYSOPNAME:"           5 1    "$SYSOPNAME"          5 15 15 0 \
         	"LOCATION:"            6 1    "$LOCATION"           6 15 30 0 \
         	"MAX_QSOS:"            7 1    "$MAX_QSOS"           7 15 3 0 \
-        	"MAX_CONNECTIONS:"     8 1   "$MAX_CONNECTIONS"     8 20 3 0 \
-        	"LINK_IDLE_TIMEOUT:"   9 1   "$LINK_IDLE_TIMEOUT"   9 25 3 0 \
+        	"MAX_CONNECTIONS:"     8 1    "$MAX_CONNECTIONS"    8 20 3 0 \
+        	"LINK_IDLE_TIMEOUT:"   9 1    "$LINK_IDLE_TIMEOUT"  9 25 3 0 \
 		2>&1 1>&3); } 3>&1
 			printf '%s\n' '/\[ModuleEchoLink]/' '/TIMEOUT=/' "s/TIMEOUT=.*/TIMEOUT=${array[0]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
 			printf '%s\n' '/\[ModuleEchoLink]/' '/SERVERS=/' "s/SERVERS=.*/SERVERS=${array[1]}/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
@@ -2128,35 +2120,35 @@ Echolink_Help_Menu() {
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
     case "$OPTION" in
-       ALLOWIP) whiptail --title "ALLOW_IP" --msgbox "Use this variable very carefully. Connections originating from the given subnet will not be checked against the Echolink directory server. A typical use of this is if you want to connect to your own Svxlink server and both the server and you are behind a IP masquerading firewall.  Example 192.168.1.0/24 " 25 80
+       ALLOWIP) whiptail --title "ALLOW_IP" --msgbox "Use this variable very carefully. Connections originating from the given subnet will not be checked against the Echolink directory server. A typical use of this is if you want to connect to your own Svxlink server and both the server and you are behind a IP masquerading firewall.  Example 192.168.1.0/24 " 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       DROPIN) whiptail --title "DROP_INCOMING" --msgbox "Drop all incoming connections where the remote callsign match this regular expression. No message will be sent to the remote station notifying about the drop. The connection will just be ignored. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+       DROPIN) whiptail --title "DROP_INCOMING" --msgbox "Drop all incoming connections where the remote callsign match this regular expression. No message will be sent to the remote station notifying about the drop. The connection will just be ignored. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       REJIN) whiptail --title "REJECT_INCOMING" --msgbox "Reject all incoming connections where the remote callsign match this regular expression. A message will be sent to the remote station indicating that the connection was rejected. The DROP_INCOMING directive will be evaluated before REJECT_INCOMING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+       REJIN) whiptail --title "REJECT_INCOMING" --msgbox "Reject all incoming connections where the remote callsign match this regular expression. A message will be sent to the remote station indicating that the connection was rejected. The DROP_INCOMING directive will be evaluated before REJECT_INCOMING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       ACCPTIN) whiptail --title "ACCEPT_INCOMING" --msgbox "Only accept incoming connections where the remote callsign match this regular expression. If the callsign doesn't match, a message will be sent to the remote station indicating that the connection was rejected. The DROP_INCOMING and REJECT_INCOMING directives will be evaluated before ACCEPT_INCOMING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+       ACCPTIN) whiptail --title "ACCEPT_INCOMING" --msgbox "Only accept incoming connections where the remote callsign match this regular expression. If the callsign doesn't match, a message will be sent to the remote station indicating that the connection was rejected. The DROP_INCOMING and REJECT_INCOMING directives will be evaluated before ACCEPT_INCOMING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       REJOG) whiptail --title "REJECT_OUTGOING" --msgbox "Reject all outgoing connections where the remote callsign match this regular expression. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+       REJOG) whiptail --title "REJECT_OUTGOING" --msgbox "Reject all outgoing connections where the remote callsign match this regular expression. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       ACCPTOG) whiptail --title "ACCEPT_OUTGOING" --msgbox "Only accept outgoing connections where the remote callsign match this regular expression. The REJECT_OUTGOING directive will be evaluated before ACCEPT_OUTGOING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80
+       ACCPTOG) whiptail --title "ACCEPT_OUTGOING" --msgbox "Only accept outgoing connections where the remote callsign match this regular expression. The REJECT_OUTGOING directive will be evaluated before ACCEPT_OUTGOING. For more information on the syntax, see the REGULAR EXPRESSIONS chapter below." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       REJCONF) whiptail --title "REJECT_CONF" --msgbox "Text In The Works" 25 80
+       REJCONF) whiptail --title "REJECT_CONF" --msgbox "Text In The Works" 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       NRCONN) whiptail --title "CHECK_NR_CONNECTS" --msgbox "If a station connects to often it can be blocked for a configurable time span. Example: CHECK_NR_CONNECTS=3,300,120 If a station connects more than 3 times with less than 300 seconds in between each connect, that station will be rejected for 120 minutes." 25 80
+       NRCONN) whiptail --title "CHECK_NR_CONNECTS" --msgbox "If a station connects to often it can be blocked for a configurable time span. Example: CHECK_NR_CONNECTS=3,300,120 If a station connects more than 3 times with less than 300 seconds in between each connect, that station will be rejected for 120 minutes." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
@@ -2164,23 +2156,23 @@ Echolink_Help_Menu() {
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       CALLSIGN) whiptail --title "CALLSIGN" --msgbox "The callsign to use to login to the Echolink directory server. -L for a  Link connection or -R for Repeater Connection" 25 80
+       CALLSIGN) whiptail --title "CALLSIGN" --msgbox "The callsign to use to login to the Echolink directory server. -L for a  Link connection or -R for Repeater Connection" 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       SYSOPNAME) whiptail --title "SYSOPNAME" --msgbox "The name of the person or club that is responsible for this system." 25 80
+       SYSOPNAME) whiptail --title "SYSOPNAME" --msgbox "The name of the person or club that is responsible for this system." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       PASSWORD) whiptail --title "PASSWORD" --msgbox "The Echolink directory server password to use." 25 80
+       PASSWORD) whiptail --title "PASSWORD" --msgbox "The Echolink directory server password to use." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       LOCATION) whiptail --title "LOCATION" --msgbox "The location of the station. Note: In the default configuration file the value of this configuration variable starts with "[Svx]". This is of course not necessary but it's fun to see which other stations are running SvxLink." 25 80
+       LOCATION) whiptail --title "LOCATION" --msgbox "The location of the station. Note: In the default configuration file the value of this configuration variable starts with "[Svx]". This is of course not necessary but it's fun to see which other stations are running SvxLink." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       PROXSERV) whiptail --title "PROXY_SERVER" --msgbox "If set, connect to the given Echolink proxy server host. All Echolink connections, both incoming and outgoing, will then go through the proxy." 25 80
+       PROXSERV) whiptail --title "PROXY_SERVER" --msgbox "If set, connect to the given Echolink proxy server host. All Echolink connections, both incoming and outgoing, will then go through the proxy." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
@@ -2188,39 +2180,39 @@ Echolink_Help_Menu() {
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       PROXPWD) whiptail --title "PROXY_PASSWORD" --msgbox "Set the Echolink proxy password used when connecting to an Echolink proxy server. Use the password PUBLIC for public proxy servers." 25 80
+       PROXPWD) whiptail --title "PROXY_PASSWORD" --msgbox "Set the Echolink proxy password used when connecting to an Echolink proxy server. Use the password PUBLIC for public proxy servers." 25 80 1 
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       QSOS) whiptail --title "MAX_QSOS" --msgbox "The maximum number of stations that can participate in a conference QSO on this node. If more stations try to connect, the connect request will be rejected." 25 80
+       QSOS) whiptail --title "MAX_QSOS" --msgbox "The maximum number of stations that can participate in a conference QSO on this node. If more stations try to connect, the connect request will be rejected." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       GSM) whiptail --title "USE_GSM_ONLY" --msgbox "On smaller systems with a less powerful CPU it is a good idea to prevent SvxLink from switching into the Speex codec when another SvxLink station is connecting via Echolink. If this param is set to 1 SvxLink remains in the default codec (GSM)." 25 80
+       GSM) whiptail --title "USE_GSM_ONLY" --msgbox "On smaller systems with a less powerful CPU it is a good idea to prevent SvxLink from switching into the Speex codec when another SvxLink station is connecting via Echolink. If this param is set to 1 SvxLink remains in the default codec (GSM)." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       LANG) whiptail --title "DEFAULT_LANG" --msgbox "Set the language to use for announcements sent to remote Echolink stations. If not set, it will be the same as the one chosen for the logic core. The reason for setting this up may be that you want one language for the core and another language for annoncements sent to remote Echolink stations." 25 80
+       LANG) whiptail --title "DEFAULT_LANG" --msgbox "Set the language to use for announcements sent to remote Echolink stations. If not set, it will be the same as the one chosen for the logic core. The reason for setting this up may be that you want one language for the core and another language for annoncements sent to remote Echolink stations." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       MAXCONN) whiptail --title "MAX_CONNECTIONS" --msgbox "When more stations than specified in MAX_QSOS try to connect, a connection will temporarily be established long enough to play a message telling the remote station that the connection was rejected. The connection is then immediately terminated. If the number of connections exceeds MAX_CONNECTIONS, the connect request is just ignored. This variable is typically set to MAX_QSOS+1 or more if using a large number for MAX_QSOS." 25 80
+       MAXCONN) whiptail --title "MAX_CONNECTIONS" --msgbox "When more stations than specified in MAX_QSOS try to connect, a connection will temporarily be established long enough to play a message telling the remote station that the connection was rejected. The connection is then immediately terminated. If the number of connections exceeds MAX_CONNECTIONS, the connect request is just ignored. This variable is typically set to MAX_QSOS+1 or more if using a large number for MAX_QSOS." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       IDLETIME) whiptail --title "LINK_IDLE_TIMEOUT" --msgbox "The number of seconds that a connection is idle before disconnection will occur. This is to prevent a link to stay open if someone forget to disconnect. Disable this feature by setting this config variable to zero (or comment it out)." 25 80
+       IDLETIME) whiptail --title "LINK_IDLE_TIMEOUT" --msgbox "The number of seconds that a connection is idle before disconnection will occur. This is to prevent a link to stay open if someone forget to disconnect. Disable this feature by setting this config variable to zero (or comment it out)." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       AUTOCONID) whiptail --title "AUTOCON_Echolink_ID" --msgbox "Set this variable to an Echolink ID that you want to automatically connect to. SvxLink will autoconnect only when no other station is connected." 25 80
+       AUTOCONID) whiptail --title "AUTOCON_Echolink_ID" --msgbox "Set this variable to an Echolink ID that you want to automatically connect to. SvxLink will autoconnect only when no other station is connected." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       AUTOTIME) whiptail --title "AUTOCON_TIME" --msgbox "Set this to the time in seconds that you want in between autoconnect tries." 25 80
+       AUTOTIME) whiptail --title "AUTOCON_TIME" --msgbox "Set this to the time in seconds that you want in between autoconnect tries." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
-       DESCRIPTION) whiptail --title "DESCRIPTION" --msgbox "A longer description that is sent to remote stations upon connection. This description should typically include detailed station information like QTH, transceiver frequency/power, antenna, CTCSS tone frequency etc." 25 80
+       DESCRIPTION) whiptail --title "DESCRIPTION" --msgbox "A longer description that is sent to remote stations upon connection. This description should typically include detailed station information like QTH, transceiver frequency/power, antenna, CTCSS tone frequency etc." 25 80 1 
             #Return to This Menu
             TARGETMENUID=12
             ;;
@@ -2293,6 +2285,46 @@ Svxlink_Networking_Menu() {
         printf '%s\n' '/dns-nameserver/' "s/dns-nameserver.*/#dns-nameserver/" w q  | ex /etc/network/interfaces
         #Return to This Menu
         TARGETMENUID=13
+        ;;
+       Wlan0)
+        REBOOT_REQUIRED=1
+        auto wlan0
+		iface wlan0 inet static
+		metric 1
+		address 
+		netmask 
+		gateway 
+		#wireless-essid 
+		#wireless-key 
+		#wireless-mode Managed
+		#wireless-power off
+		wpa-ssid 
+		wpa-psk 
+		dns-nameservers 
+            
+            Address=""
+			Gateway=""
+			Netmask=""
+			DNS_Server=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" \
+        --backtitle "Eth0 Net Configuration" \
+        --title "Eth0 Config" --form "Eth0" \
+		20 70 0 \
+        	"Address:"     1 1    "$Address"        1 16 16 0 \
+        	"Gateway:"     2 1    "$Gateway"        2 16 16 0 \
+        	"Netmask:"     3 1    "$Netmask"        3 16 16 0 \
+        	"DNS_Server:"  4 1    "$DNS_Server"     4 16 65 0 \
+		2>&1 1>&3); } 3>&1
+		# close fd
+		exec 3>&-
+		printf '%s\n' '/dhcp/' "s/dhcp/static/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/address/' "s/address.*/address ${array[0]}/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/gateway/' "s/gateway.*/gateway ${array[1]}/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/netmask/' "s/netmask.*/netmask ${array[2]}/" w q  | ex /etc/network/interfaces
+		printf '%s\n' '/dns-nameserver/' "s/dns-nameserver.*/dns-nameserver ${array[3]}/" w q  | ex /etc/network/interfaces
+        #Return to This Menu
+        TARGETMENUID=5
         ;;
 	  IPv6)
 			#Disable
