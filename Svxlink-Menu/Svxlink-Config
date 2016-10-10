@@ -689,6 +689,26 @@ cat >> /etc/crontab << DELIM
 DELIM
 }
 
+set_modules() {
+  WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
+  OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+    "RepeaterLogic" " Select Reciever 1 Port" ON \
+    "SimplexLogic" "Select Transmiter1 Port" OFF \
+    "LinkLogic" "Select Link Reciever port" OFF \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPT1" in
+      RepeaterLogic) set "$OPT1"
+         ;;
+      SimplexLogic) set "$OPT1"
+         ;;
+      LinkLogic) set "$OPT1"
+         ;;
+    esac
+    fi
+}
+
 select_modules(){
      WHIP_TITLE='---------- Enable\/Disable SvxLink Modules ----------'
 	OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
@@ -729,28 +749,7 @@ select_modules(){
 		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/svxlink.conf
 
 }
-set_modules() {
-  WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
-  OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
-    "Rx1" " Select Reciever 1 Port" ON \
-    "Tx1" "Select Transmiter1 Port" OFF \
-    "Link" "Select Link Reciever port" OFF \
-    "LinkTX" "Select Link Transmiter port" OFF \
-    3>&1 1>&2 2>&3 || : )
-	CHOICE=$?
-	if (( CHOICE == 0 )); then
-    case "$OPT1" in
-      R) set "$OPT1"
-         ;;
-      Tx1) set "$OPT1"
-         ;;
-      LinkRx) set "$OPT1"
-         ;;
-      LinkTx) set "$OPT1"
-         ;;
-    esac
-    fi
-}
+
 
 
 first_run() {
