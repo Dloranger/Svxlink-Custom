@@ -1004,6 +1004,7 @@ Svxlink_Config_Menu() {
             ;;
       Ctcss-Tone)
             RESTART_SVXLINK_REQUIRED=1
+             option=$(set_modules)
               select_rxtx
   WHIP_TITLE='---------- Select CTCSS Tone ----------'
   OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
@@ -1079,7 +1080,7 @@ declare -A config=()
     fi
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
+logics=$rlogic
 selected=${selected%,}
     printf '%s\n' "/\[$OPTION]/" '/CTCSS_FQ=/' "s/CTCSS_FQ=.*/CTCSS_FQ=$selected/" w q  | ex /etc/svxlink/svxlink.conf
     printf '%s\n' "/\[$logics]/" '/REPORT_CTCSS=/' "s/REPORT_CTCSS=.*/REPORT_CTCSS=$selected/" w q  | ex /etc/svxlink/svxlink.conf
@@ -1088,6 +1089,7 @@ selected=${selected%,}
             ;;
       Ctcss-Options)
             RESTART_SVXLINK_REQUIRED=1
+	        option=$(set_modules)
             CTCSS_MODE=""
 			CTCSS_SNR_OFFSET=""
 			CTCSS_OPEN_THRESH=""
@@ -1108,14 +1110,27 @@ selected=${selected%,}
 			"CTCSS_LEVEL:"          7 1    "$CTCSS_LEVEL"        7 21 3 0 \
 			"TX_CTCSS:"             8 1    "$TX_CTCSS"           8 21 15 0 \
 		2>&1 1>&3); } 3>&1
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_MODE=/' "s/CTCSS_MODE=.*/CTCSS_MODE=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_SNR_OFFSET=/' "s/CTCSS_SNR_OFFSET=.*/CTCSS_SNR_OFFSET=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_OPEN_THRESH=/' "s/CTCSS_OPEN_THRESH=.*/CTCSS_OPEN_THRESH=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_CLOSE_THRESH=/' "s/CTCSS_CLOSE_THRESH=.*/CTCSS_CLOSE_THRESH=${array[3]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_BPF_LOW=/' "s/CTCSS_BPF_LOW=.*/CTCSS_BPF_LOW=${array[4]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/CTCSS_BPF_HIGH=/' "s/CTCSS_BPF_HIGH=.*/CTCSS_BPF_HIGH=${array[5]}/" w q  | ex /etc/svxlink/svxlink.conf
+declare -A config=()
+  while IFS='=' read -r key value; do
+    if [[ -z $value && $key = "["*"]" ]]; then
+      section=${key#\[} section=${section%]}
+      continue
+    else
+      if [[ -z $key || $key = \#* ]]; then
+        continue
+      fi
+    fi
+    config[$section.$key]=$value
+done < /etc/svxlink/svxlink.conf
+			logics=$rlogic		
+			printf '%s\n' "/\[$logics]/" '/CTCSS_MODE=/' "s/CTCSS_MODE=.*/CTCSS_MODE=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' "/\[$logics]/" '/CTCSS_SNR_OFFSET=/' "s/CTCSS_SNR_OFFSET=.*/CTCSS_SNR_OFFSET=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' "/\[$logics]/" '/CTCSS_OPEN_THRESH=/' "s/CTCSS_OPEN_THRESH=.*/CTCSS_OPEN_THRESH=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' "/\[$logics]/" '/CTCSS_CLOSE_THRESH=/' "s/CTCSS_CLOSE_THRESH=.*/CTCSS_CLOSE_THRESH=${array[3]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' "/\[$logics]/" '/CTCSS_BPF_LOW=/' "s/CTCSS_BPF_LOW=.*/CTCSS_BPF_LOW=${array[4]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' "/\[$logics]/" '/CTCSS_BPF_HIGH=/' "s/CTCSS_BPF_HIGH=.*/CTCSS_BPF_HIGH=${array[5]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[Tx1]/' '/CTCSS_LEVEL=/' "s/CTCSS_LEVEL=.*/CTCSS_LEVEL=${array[6]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\${config[GLOBAL.LOGICS]}\]/" '/TX_CTCSS=/' "s/TX_CTCSS=.*/TX_CTCSS=${array[7]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' "/\[$logics]/" '/TX_CTCSS=/' "s/TX_CTCSS=.*/TX_CTCSS=${array[7]}/" w q  | ex /etc/svxlink/svxlink.conf
             #Return to This Menu
             TARGETMENUID=4
             ;;
@@ -1333,7 +1348,6 @@ selected=${selected%,}
         		"SHORT_IDENT_INTERVAL:"    1 1    "$SHORT_IDENT_INTERVAL"  1 22 3 0 \
         		"LONG_IDENT_INTERVAL:"     2 1    "$LONG_IDENT_INTERVAL"   2 22 3 0 \
 		2>&1 1>&3); } 3>&1
-
 declare -A config=()
   while IFS='=' read -r key value; do
     if [[ -z $value && $key = "["*"]" ]]; then
@@ -1347,7 +1361,6 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 logics=${config[GLOBAL.LOGICS]}
-
 		printf '%s\n' "/\[$logics]/" '/SHORT_IDENT_INTERVAL=/' "s/SHORT_IDENT_INTERVAL=.*/SHORT_IDENT_INTERVAL=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 		printf '%s\n' "/\[$logics]/" '/LONG_IDENT_INTERVAL=/' "s/LONG_IDENT_INTERVAL=.*/LONG_IDENT_INTERVAL=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
             #Return to This Menu
@@ -1440,8 +1453,9 @@ declare -A config=()
    fi
    config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/FX_GAIN_NORMAL=/' "s/FX_GAIN_NORMAL=.*/FX_GAIN_NORMAL=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/FX_GAIN_LOW=/' "s/FX_GAIN_LOW=.*/FX_GAIN_LOW=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
+logics=${config[GLOBAL.LOGICS]}
+			printf '%s\n' "/\[$logics]/" '/FX_GAIN_NORMAL=/' "s/FX_GAIN_NORMAL=.*/FX_GAIN_NORMAL=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' "/\[$logics]/" '/FX_GAIN_LOW=/' "s/FX_GAIN_LOW=.*/FX_GAIN_LOW=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
             #Return to This Menu
             TARGETMENUID=4
             ;;
