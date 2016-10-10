@@ -791,7 +791,7 @@ whiptail --msgbox "\
 # Advanced system options
 Advanced_Menu() {
 	TARGETMENUID=0
-	WHIP_TITLE='---------- SvxLink Advanced Menu ----------'
+	WHIP_TITLE='---------- Advanced Menu ----------'
 	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
 		"International" "Configure Keyboard TimeZone Locale" \
     	"Networking" "Configure Netorking Interfaces" \
