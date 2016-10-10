@@ -453,29 +453,6 @@ _whiptail() {
         "${args[@]}"
 } 3>&1 1>&2 2>&3
 
-select_rxtx() {
-  WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
-  OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
-    "Rx1" " Select Reciever 1 Port" ON \
-    "Tx1" "Select Transmiter1 Port" OFF \
-    "LinkRX" "Select Link Reciever port" OFF \
-    "LinkTX" "Select Link Transmiter port" OFF \
-    3>&1 1>&2 2>&3 || : )
-	CHOICE=$?
-	if (( CHOICE == 0 )); then
-    case "$OPT1" in
-      Rx1) set "$OPT1"
-         ;;
-      Tx1) set "$OPT1"
-         ;;
-      LinkRx) set "$OPT1"
-         ;;
-      LinkTx) set "$OPT1"
-         ;;
-    esac
-    fi
-}
-
 set_repeater_soundcard() {
   local option dev rx=0 tx=0
   WHIP_TITLE='---------- Select Repeater Sound Card ----------'
@@ -524,6 +501,29 @@ set_linkport_soundcard() {
 w
 q
 !
+}
+
+select_rxtx() {
+  WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
+  OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+    "Rx1" " Select Reciever 1 Port" ON \
+    "Tx1" "Select Transmiter1 Port" OFF \
+    "LinkRX" "Select Link Reciever port" OFF \
+    "LinkTX" "Select Link Transmiter port" OFF \
+    3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+    case "$OPT1" in
+      Rx1) set "$OPT1"
+         ;;
+      Tx1) set "$OPT1"
+         ;;
+      LinkRx) set "$OPT1"
+         ;;
+      LinkTx) set "$OPT1"
+         ;;
+    esac
+    fi
 }
 
 set_qso() {
