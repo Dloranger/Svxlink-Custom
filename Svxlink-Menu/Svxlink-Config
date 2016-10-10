@@ -690,20 +690,20 @@ DELIM
 }
 
 set_modules() {
-  WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
-  OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+  WHIP_TITLE='---------- Select Repeater Logic  ----------'
+  rlogic=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
     "RepeaterLogic" " Select Reciever 1 Port" ON \
     "SimplexLogic" "Select Transmiter1 Port" OFF \
     "LinkLogic" "Select Link Reciever port" OFF \
     3>&1 1>&2 2>&3 || : )
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
-    case "$OPT1" in
-      RepeaterLogic) set "$OPT1"
+    case "$rlogic" in
+      RepeaterLogic) set "$rlogic"
          ;;
-      SimplexLogic) set "$OPT1"
+      SimplexLogic) set "$rlogic"
          ;;
-      LinkLogic) set "$OPT1"
+      LinkLogic) set "$rlogic"
          ;;
     esac
     fi
@@ -711,6 +711,7 @@ set_modules() {
 
 select_modules(){
      WHIP_TITLE='---------- Enable\/Disable SvxLink Modules ----------'
+     option=$(set_modules)
 	OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
 	"ModuleHelp" "Help Module" ON \
 	"ModuleParrot" "Parrot Module" ON  \
@@ -744,7 +745,7 @@ select_modules(){
 		fi
 		config[$section.$key]=$value
 		done < /etc/svxlink/svxlink.conf
-		logics=${config[GLOBAL.LOGICS]}
+		logics=$rlogic
 			selected=${selected%,}
 		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/svxlink.conf
 
