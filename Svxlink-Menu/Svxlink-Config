@@ -1,11 +1,5 @@
 #!/bin/bash
 {
-#adding translation
-import locale
-from locale import gettext as _
-#locale.bindtextdomain('drawers', '/opt/extras.ubuntu.com/drawers/share/locale')
-#locale.textdomain('drawers')
-
 # Disacle CTL C (Disable CTL-C so you can not escape the menu)
 trap "" SIGTSTP
 trap "" 2
@@ -120,7 +114,6 @@ fi
     "2" "Advanced Configuration Options" \
     "3" "Information about this configuration tool" \
     3>&1 1>&2 2>&3 || : )
-
     CHOICE=$?
     if (( CHOICE == 0 )); then
       if (( OPTION == 1 )); then
@@ -155,7 +148,6 @@ fi
 
 Menu_Exit(){
 	# TARGETMENUID = -1 , if we are to exit the menu
-
 	# The good old "Are you really sure" question.
 	WHIP_TITLE=' Exit Svxlink-Config ? '
 	WHIP_QUESTION=' Exit Svxink_config? '
@@ -187,7 +179,7 @@ Menu_Exit(){
 				#Reboot
 				reboot
 			fi
-		fi
+		fi	
 	#Return to main menu
 	elif (( EXITONBACK == 0 )); then
 		TARGETMENUID=0
@@ -750,8 +742,6 @@ select_modules(){
 		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/svxlink.conf
 
 }
-
-
 
 first_run() {
 whiptail --msgbox "\
