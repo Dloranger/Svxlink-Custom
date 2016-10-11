@@ -1341,6 +1341,7 @@ done < /etc/svxlink/svxlink.conf
             ;;
       CT-Timer)
             RESTART_SVXLINK_REQUIRED=1
+            option=$(set_modules)
             SHORT_IDENT_INTERVAL=""
 			LONG_IDENT_INTERVAL=""
 		{
@@ -1360,7 +1361,7 @@ declare -A config=()
     fi
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
+logics=$rlogic
 		printf '%s\n' "/\[$logics]/" '/SHORT_IDENT_INTERVAL=/' "s/SHORT_IDENT_INTERVAL=.*/SHORT_IDENT_INTERVAL=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 		printf '%s\n' "/\[$logics]/" '/LONG_IDENT_INTERVAL=/' "s/LONG_IDENT_INTERVAL=.*/LONG_IDENT_INTERVAL=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
             #Return to This Menu
@@ -1433,6 +1434,7 @@ logics=${config[GLOBAL.LOGICS]}
             ;;
       FX-Gain)
             RESTART_SVXLINK_REQUIRED=1
+            option=$(set_modules)
             FX_GAIN_NORMAL=""
 			FX_GAIN_LOW=""
 		{
@@ -1440,7 +1442,6 @@ logics=${config[GLOBAL.LOGICS]}
 			"FX_GAIN_NORMAL:"      1 1    "$FX_GAIN_NORMAL"     1 15 3 0 \
 			"FX_GAIN_LOW:"         2 1    "$FX_GAIN_LOW"        2 15 3 0 \
 		2>&1 1>&3); } 3>&1
-
 declare -A config=()
  while IFS='=' read -r key value; do
    if [[ -z $value && $key = "["*"]" ]]; then
@@ -1453,7 +1454,7 @@ declare -A config=()
    fi
    config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
+		logics=$rlogic
 			printf '%s\n' "/\[$logics]/" '/FX_GAIN_NORMAL=/' "s/FX_GAIN_NORMAL=.*/FX_GAIN_NORMAL=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' "/\[$logics]/" '/FX_GAIN_LOW=/' "s/FX_GAIN_LOW=.*/FX_GAIN_LOW=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
             #Return to This Menu
@@ -2278,7 +2279,7 @@ Svxlink_Networking_Menu() {
 		printf '%s\n' '/netmask/' "s/netmask.*/netmask ${array[2]}/" w q  | ex /etc/network/interfaces
 		printf '%s\n' '/dns-nameserver/' "s/dns-nameserver.*/dns-nameserver ${array[3]}/" w q  | ex /etc/network/interfaces
         #Return to This Menu
-        TARGETMENUID=5
+        TARGETMENUID=13
         ;;
       Eth0_DHCP)
         REBOOT_REQUIRED=1
@@ -2289,46 +2290,6 @@ Svxlink_Networking_Menu() {
         printf '%s\n' '/dns-nameserver/' "s/dns-nameserver.*/#dns-nameserver/" w q  | ex /etc/network/interfaces
         #Return to This Menu
         TARGETMENUID=13
-        ;;
-       Wlan0)
-        REBOOT_REQUIRED=1
-        auto wlan0
-		iface wlan0 inet static
-		metric 1
-		address 
-		netmask 
-		gateway 
-		#wireless-essid 
-		#wireless-key 
-		#wireless-mode Managed
-		#wireless-power off
-		wpa-ssid 
-		wpa-psk 
-		dns-nameservers 
-            
-            Address=""
-			Gateway=""
-			Netmask=""
-			DNS_Server=""
-		{
-		mapfile -t array < <(dialog --ok-label "Submit" \
-        --backtitle "Eth0 Net Configuration" \
-        --title "Eth0 Config" --form "Eth0" \
-		20 70 0 \
-        	"Address:"     1 1    "$Address"        1 16 16 0 \
-        	"Gateway:"     2 1    "$Gateway"        2 16 16 0 \
-        	"Netmask:"     3 1    "$Netmask"        3 16 16 0 \
-        	"DNS_Server:"  4 1    "$DNS_Server"     4 16 65 0 \
-		2>&1 1>&3); } 3>&1
-		# close fd
-		exec 3>&-
-		printf '%s\n' '/dhcp/' "s/dhcp/static/" w q  | ex /etc/network/interfaces
-		printf '%s\n' '/address/' "s/address.*/address ${array[0]}/" w q  | ex /etc/network/interfaces
-		printf '%s\n' '/gateway/' "s/gateway.*/gateway ${array[1]}/" w q  | ex /etc/network/interfaces
-		printf '%s\n' '/netmask/' "s/netmask.*/netmask ${array[2]}/" w q  | ex /etc/network/interfaces
-		printf '%s\n' '/dns-nameserver/' "s/dns-nameserver.*/dns-nameserver ${array[3]}/" w q  | ex /etc/network/interfaces
-        #Return to This Menu
-        TARGETMENUID=5
         ;;
 	  IPv6)
 			#Disable
