@@ -335,22 +335,8 @@ cat > /etc/hostname << DELIM
 $HOSTNAME_NEW-Repeater
 DELIM
 
-declare -A config=()
-  while IFS='=' read -r key value; do
-    if [[ -z $value && $key = "["*"]" ]]; then
-      section=${key#\[} section=${section%]}
-      continue
-    else
-      if [[ -z $key || $key = \#* ]]; then
-        continue
-      fi
-    fi
-    config[$section.$key]=$value
-  done < /etc/svxlink/svxlink.conf
-
-  logics=${config[GLOBAL.LOGICS]}
-
-  printf '%s\n' "/\[$logics]/" '/CALLSIGN=/' "s/CALLSIGN=.*/CALLSIGN=$OPTION/" w q | ex /etc/svxlink/svxlink.conf
+  printf '%s\n' "/\[RepeaterLogic]/" '/CALLSIGN=/' "s/CALLSIGN=.*/CALLSIGN=$OPTION/" w q | ex /etc/svxlink/svxlink.conf
+  printf '%s\n' "/\[LinkLogic]/" '/CALLSIGN=/' "s/CALLSIGN=.*/CALLSIGN=$OPTION/" w q | ex /etc/svxlink/svxlink.conf
   WHIP_TITLE='CallSign Applied'
   whiptail --title "$WHIP_TITLE" --msgbox " Your new Repeater Callsign has successfully been applied." 8 60
 else
@@ -365,7 +351,6 @@ select_language() {
     "en_US" "Enable English Language" ON \
     "fr_FR" "Enable French Language" OFF \
     3>&1 1>&2 2>&3 || : )
-
   while read -r option; do
     if [[ $option = @(en_US|fr_FR|sv_SE) ]]; then
       selected+=$option,
@@ -374,9 +359,7 @@ select_language() {
       declare -p option option
     fi
   done <<< "$OPTION"
-
   selected=${selected%,}
-
    printf '%s\n' '/DEFAULT_LANG=/' "s/DEFAULT_LANG=.*/DEFAULT_LANG=$selected/" w q  | ex /etc/svxlink/svxlink.conf
    printf '%s\n' '/\[ModuleEchoLink]/' '/DEFAULT_LANG=/' "s/DEFAULT_LANG=.*/DEFAULT_LANG=$selected/" w q  | ex /etc/svxlink/svxlink.d/ModuleEchoLink.conf
 }
@@ -520,6 +503,7 @@ select_rxtx() {
 
 set_qso() {
 #QSO_RECORDER=8:QsoRecorder
+	option=$(set_modules)
     WHIP_TITLE='---------- SvxLink QSO Recorder Option ----------'
     OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
      "Enable_QSO" " Enable QSO Recorder " OFF \
@@ -527,22 +511,11 @@ set_qso() {
     3>&1 1>&2 2>&3 || : )
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
-    declare -A config=()
-     while IFS='=' read -r key value; do
-       if [[ -z $value && $key = "["*"]" ]]; then
-        section=${key#\[} section=${section%]}
-        continue
-       else
-         if [[ -z $key || $key = \#* ]]; then
-           continue
-         fi
-       fi
-       config[$section.$key]=$value
-    done < /etc/svxlink/svxlink.conf
+     logic=$rlogic
       case "$OPTION" in
-      Enable_QSO)  printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/QSO_RECORDER=/' 's/#QSO_RECORDER=.*/QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
+      Enable_QSO)  printf '%s\n' "/\[$logics]/" '/QSO_RECORDER=/' 's/#QSO_RECORDER=.*/QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
             ;;
-      Disable_QSO)  printf '%s\n' "/\[${config[GLOBAL.LOGICS]}]\]/" '/QSO_RECORDER=/' 's/QSO_RECORDER=.*/#QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
+      Disable_QSO)  printf '%s\n' "/\[$logics]/" '/QSO_RECORDER=/' 's/QSO_RECORDER=.*/#QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
             ;;
      esac
     fi
@@ -561,7 +534,6 @@ declare -A config=()
     fi
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
 if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleFrn,* ]] || [[ ${config[SimplexLogic.MODULES]} = *,ModuleFrn,* ]] ; then
     Frn_Setup; else whiptail --title "FreeRadio Network Module" --msgbox " ModuleFrn Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
@@ -580,7 +552,6 @@ declare -A config=()
     fi
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
 if  [[ ",${config[RepeaterLogic.MODULES]}," = *,ModuleEchoLink,* ]] || [[ ",${config[SimplexLogicLogic.MODULES]}," = *,ModuleEchoLink,* ]] ; then
     EchoLink_Main_Menu; else whiptail --title "Echolink Module" --msgbox " ModuleEchoLink Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
@@ -599,7 +570,6 @@ declare -A config=()
     fi
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
 if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleRemoteRelay,* ]] || [[ ${config[SimplexLogic.MODULES]} = *,ModuleRemoteRelay,* ]]; then
     RemoteRelay_setup; else whiptail --title "Remote Relay Module" --msgbox " ModuleRemoteRelay Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
@@ -618,7 +588,6 @@ declare -A config=()
     fi
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
 if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleWeatherSatation,* ]] ||[[ ${config[SimplexLogic.MODULES]} = *,ModuleWeatherSatation,* ]]; then
    WeatherStation_setup; else whiptail --title "WeatherStation Module" --msgbox " ModuleWeatherStation Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
@@ -637,7 +606,6 @@ declare -A config=()
     fi
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-logics=${config[GLOBAL.LOGICS]}
 if  [[ ${config[RepeaterLogic.MODULES]} = *,ModuleTclSSTV,* ]] || [[ ${config[SimplexLogic.MODULES]} = *,ModuleTclSSTV,* ]]; then
     sstv_setup; else whiptail --title "TclSSTV Module" --msgbox " ModuleTclSSTV Not Loaded/Enabled Please Enable and return to setup. " 10 25 2;
 fi
@@ -718,12 +686,12 @@ select_modules(){
 	"ModuleTclSSTV" "SlowScan TV Module" OFF \
 	3>&1 1>&2 2>&3 || : )
   	while read -r option; do
-    		if [[ $option = Module@(Help|Parrot|EchoLink|Frn|TclVoiceMail|MetarInfo|DtmfRepeater|PropagationMonitor|SelCallEnc|RemoteRelay|TclSSTV) ]]; then
-      			selected+=$option,
-    		else
-      			whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
-      			declare -p option option
-    		fi
+    	if [[ $option = Module@(Help|Parrot|EchoLink|Frn|TclVoiceMail|MetarInfo|DtmfRepeater|PropagationMonitor|SelCallEnc|RemoteRelay|TclSSTV) ]]; then
+      		selected+=$option,
+    	else
+      		whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+      		declare -p option option
+    	fi
   		done <<< "$OPTION"
   		declare -A config=()
   		while IFS='=' read -r key value; do
@@ -738,9 +706,8 @@ select_modules(){
 		config[$section.$key]=$value
 		done < /etc/svxlink/svxlink.conf
 		logics=$rlogic
-			selected=${selected%,}
+		selected=${selected%,}
 		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/svxlink.conf
-
 }
 
 first_run() {
@@ -980,7 +947,7 @@ Svxlink_Config_Menu() {
 	"Ru" "Configure RtlUSB Reciever settings" \
 	"FX-Gain" "Configure FX Gain" \
 	"LocationInfo" "Set Repeater Location Information" \
-        3>&1 1>&2 2>&3 || : )
+     3>&1 1>&2 2>&3 || : )
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
     case "$OPTION" in
@@ -1245,7 +1212,7 @@ done < /etc/svxlink/svxlink.conf
             ;;
       Ru)
             RESTART_SVXLINK_REQUIRED=1
-            TYPE=Ddr
+            TYPE="Ddr"
 			SQL_DET=""
 			SIGLEV_DET=""
 			SIGLEV_SLOPE=""
@@ -1260,29 +1227,28 @@ done < /etc/svxlink/svxlink.conf
 			WBRX=""
 			{
 			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "WebRX Configuration" --title "WebRx Setup" --form "WebRX" 20 70 0 \
-				"TYPE:"					1 1  "$TYPE"                1 15 15 0 \
-				"SQL_DET:"				2 1  "$SQL_DET"             2 15 15 0 \
-				"SIGLEV_DET:" 			3 1  "$SIGLEV_DET"          3 15 15 0 \
-				"SIGLEV_SLOPE:"			4 1  "$SIGLEV_SLOPE"        4 15 15 0 \
-				"SIGLEV_OFFSET:"		5 1  "$SIGLEV_OFFSET"       5 15 15 0 \
-				"SIGLEV_OPEN_THRESH:"	6 1  "$SIGLEV_OPEN_THRESH"  6 15 15 0 \
-				"SIGLEV_CLOSE_THRESH:"	7 1  "$SIGLEV_CLOSE_THRESH" 7 15 15 0 \
-				"CTCSS_FQ:"				8 1  "$CTCSS_FQ"            8 15 15 0 \
-				"DTMF_DEC_TYPE:"		9 1  "$DTMF_DEC_TYPE"       9 15 15 0 \
-				"DTMF_MUTING:"			10 1  "$DTMF_MUTING"        10 15 15 0 \
-				"DEEMPHASIS:"			11 1 "$DEEMPHASIS"          11 15 15 0 \
-				"Freqency:"				12 1 "$FQ"                  12 15 15 0 \
-				"WBRX:"					13 1 "$WBRX"                13 15 15 0 \
+				"SQL_DET:"				1 1  "$SQL_DET"             1 15 15 0 \
+				"SIGLEV_DET:" 			2 1  "$SIGLEV_DET"          2 15 15 0 \
+				"SIGLEV_SLOPE:"			3 1  "$SIGLEV_SLOPE"        3 15 15 0 \
+				"SIGLEV_OFFSET:"		4 1  "$SIGLEV_OFFSET"       4 15 15 0 \
+				"SIGLEV_OPEN_THRESH:"	5 1  "$SIGLEV_OPEN_THRESH"  5 15 15 0 \
+				"SIGLEV_CLOSE_THRESH:"	6 1  "$SIGLEV_CLOSE_THRESH" 6 15 15 0 \
+				"CTCSS_FQ:"				7 1  "$CTCSS_FQ"            7 15 15 0 \
+				"DTMF_DEC_TYPE:"		8 1  "$DTMF_DEC_TYPE"       8 15 15 0 \
+				"DTMF_MUTING:"			9 1  "$DTMF_MUTING"         9 15 15 0 \
+				"DEEMPHASIS:"			10 1 "$DEEMPHASIS"          10 15 15 0 \
+				"Freqency:"				11 1 "$FQ"                  11 15 15 0 \
+				"WBRX:"					12 1 "$WBRX"                12 15 15 0 \
 			2>&1 1>&3); } 3>&1
-			printf '%s\n' '/\[RU1]/' '/TYPE=/' "s/#TYPE=.*/TYPE=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/SQL_DET=/' "s/#SQL_DET=.*/SQL_DET=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/SIGLEV_DET=/' "s/#SIGLEV_DET=.*/SIGLEV_DET=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/SIGLEV_SLOPE=/' "s/#SIGLEV_SLOPE=.*/SIGLEV_SLOPE=${array[3]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/SIGLEV_OFFSET=/' "s/#SIGLEV_OFFSET=.*/SIGLEV_OFFSET=${array[4]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/SIGLEV_OPEN_THRESH=/' "s/#SIGLEV_OPEN_THRESH=.*/SIGLEV_OPEN_THRESH=${array[5]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/SIGLEV_CLOSE_THRESH=/' "s/#SIGLEV_CLOSE_THRESH=.*/SIGLEV_CLOSE_THRESH=${array[6]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/CTCSS_FQ=/' "s/#CTCSS_FQ=.*/CTCSS_FQ=${array[7]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[RU1]/' '/DTMF_DEC_TYPE=/' "s/#DTMF_DEC_TYPE=.*/DTMF_DEC_TYPE=${array[8]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SQL_DET=/' "s/#SQL_DET=.*/SQL_DET=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_DET=/' "s/#SIGLEV_DET=.*/SIGLEV_DET=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_SLOPE=/' "s/#SIGLEV_SLOPE=.*/SIGLEV_SLOPE=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_OFFSET=/' "s/#SIGLEV_OFFSET=.*/SIGLEV_OFFSET=${array[3]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_OPEN_THRESH=/' "s/#SIGLEV_OPEN_THRESH=.*/SIGLEV_OPEN_THRESH=${array[4]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/SIGLEV_CLOSE_THRESH=/' "s/#SIGLEV_CLOSE_THRESH=.*/SIGLEV_CLOSE_THRESH=${array[5]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/CTCSS_FQ=/' "s/#CTCSS_FQ=.*/CTCSS_FQ=${array[6]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/DTMF_DEC_TYPE=/' "s/#DTMF_DEC_TYPE=.*/DTMF_DEC_TYPE=${array[7]}/" w q  | ex /etc/svxlink/svxlink.conf
+			printf '%s\n' '/\[RU1]/' '/DTMF_MUTING=/' "s/#DTMF_MUTING=.*/DTMF_MUTING=${array[8]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[RU1]/' '/DEEMPHASIS=/' "s/#DEEMPHASIS=.*/DEEMPHASIS=${array[9]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[RU1]/' '/FQ=/' "s/#FQ=.*/FQ=${array[10]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[RU1]/' '/WBRX=/' "s/#WBRX=.*/WBRX=${array[11]}/" w q  | ex /etc/svxlink/svxlink.conf
@@ -1454,7 +1420,7 @@ declare -A config=()
    fi
    config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
-		logics=$rlogic
+		    logics=$rlogic
 			printf '%s\n' "/\[$logics]/" '/FX_GAIN_NORMAL=/' "s/FX_GAIN_NORMAL=.*/FX_GAIN_NORMAL=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' "/\[$logics]/" '/FX_GAIN_LOW=/' "s/FX_GAIN_LOW=.*/FX_GAIN_LOW=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
             #Return to This Menu
