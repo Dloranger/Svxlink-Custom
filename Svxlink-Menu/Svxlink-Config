@@ -2464,5 +2464,4 @@ while (( TARGETMENUID > -1 )); do
 done
 exit
 }
-
-}
+}
