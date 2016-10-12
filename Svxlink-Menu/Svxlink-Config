@@ -710,6 +710,70 @@ done < /etc/svxlink/svxlink.conf
 		printf '%s\n' "/\[$logics]/" '/MODULES=/' "s/MODULES=.*/MODULES=$selected/" w q | ex /etc/svxlink/svxlink.conf
 }
 
+set_location_info() {
+	WHIP_TITLE='---------- SvxLink Location Infomation Option ----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+	"Enable_Info" " Enable LocationInfo " OFF \
+	"Disable_Info" " Disable LocationInfo(Default) " OFF \
+	3>&1 1>&2 2>&3 || : )
+	CHOICE=$?
+	if (( CHOICE == 0 )); then
+	case "$OPTION" in
+		Enable_Info)  printf '%s\n' "/\GLOBAL]/" '/Location_Info=/' 's/#Location_Info=.*/Location_Info=LocationInfo/' w q  | ex /etc/svxlink/svxlink.conf
+		location_info
+			;;
+		Disable_Info)  printf '%s\n' "/\[GLOBAL]/" '/Location_Info=/' 's/Location_Info=.*/#Location_Info=LocationInfo/' w q  | ex /etc/svxlink/svxlink.conf
+			;;
+	esac
+	fi
+}
+
+location_info() {
+	RESTART_SVXLINK_REQUIRED=1
+   	APRS_SERVER_LIST=""
+	STATUS_SERVER_LIST=""
+	LON_POSITION=""
+	LAT_POSITION=""
+	CALLSIGN=""
+	FREQUENCY=""
+	TX_POWER=""
+	ANTENNA_GAIN=""
+	ANTENNA_HEIGHT=""
+	ANTENNA_DIR=""
+	BEACON_INTERVAL=""
+	TONE=""
+	COMMENT=""
+		{
+		mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Location Infromation" --title "LocationInfo Setup" --form "LocationInfo" 20 70 0 \
+       		"APRS_SERVER_LIST:"     1 1    "$APRS_SERVER_LIST"    1 15 10 0 \
+       		"STATUS_SERVER_LIST:"   2 1    "$STATUS_SERVER_LIST"  2 15 10 0 \
+       		"LON_POSITION:"         3 1    "$LON_POSITION"        3 15 10 0 \
+       		"LAT_POSITION:"         4 1    "$LAT_POSITION"        4 15 10 0 \
+       		"CALLSIGN:"             5 1    "$CALLSIGN"            5 15 10 0 \
+       		"FREQUENCY:"            6 1    "$FREQUENCY"           6 15 10 0 \
+       		"TX_POWER:"             7 1    "$TX_POWER"            7 15 10 0 \
+       		"ANTENNA_GAIN:"         8 1    "$ANTENNA_GAIN"        8 15 10 0 \
+       		"ANTENNA_HEIGHT:"       9 1    "$ANTENNA_HEIGHT"      9 15 10 0 \
+       		"ANTENNA_DIR:"          10 1   "$ANTENNA_DIR"         10 15 10 0 \
+       		"BEACON_INTERVAL:"      11 1   "$BEACON_INTERVAL"     11 15 10 0 \
+       		"TONE:"                 12 1   "$TONE"                12 15 10 0 \
+       		"COMMENT:"              13 1   "$COMMENT"             13 15 40 0 \
+		2>&1 1>&3); } 3>&1
+	printf '%s\n' '/\[LocationInfo]/' '/APRS_SERVER_LIST=/' "s/APRS_SERVER_LIST=.*/APRS_SERVER_LIST=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/STATUS_SERVER_LIST=/' "s/STATUS_SERVER_LIST=.*/STATUS_SERVER_LIST=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/LON_POSITION=/' "s/LON_POSITION=.*/LON_POSITION=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/LAT_POSITION=/' "s/LAT_POSITION=.*/LAT_POSITION=${array[3]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/CALLSIGN=/' "s/CALLSIGN=.*/CALLSIGN=${array[4]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/FREQUENCY=/' "s/FREQUENCY=.*/FREQUENCY=${array[5]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/TX_POWER=/' "s/TX_POWER=.*/TX_POWER=${array[6]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_GAIN=/' "s/ANTENNA_GAIN=.*/ANTENNA_GAIN=${array[7]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_HEIGHT=/' "s/ANTENNA_HEIGHT=.*/ANTENNA_HEIGHT=${array[8]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_DIR=/' "s/ANTENNA_DIR=.*/ANTENNA_DIR=${array[9]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/BEACON_INTERVAL=/' "s/BEACON_INTERVAL=.*/BEACON_INTERVAL=${array[10]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/TONE=/' "s/TONE=.*/TONE=${array[11]}/" w q  | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LocationInfo]/' '/COMMENT=/' "s/COMMENT=.*/COMMENT=${array[12]}/" w q  | ex /etc/svxlink/svxlink.conf
+}
+
 first_run() {
 whiptail --msgbox "\
 
@@ -1244,49 +1308,7 @@ done < /etc/svxlink/svxlink.conf
             TARGETMENUID=4
             ;;
 		LocationInfo)
-			RESTART_SVXLINK_REQUIRED=1
-        	APRS_SERVER_LIST=""
-			STATUS_SERVER_LIST=""
-			LON_POSITION=""
-			LAT_POSITION=""
-			CALLSIGN=""
-			FREQUENCY=""
-			TX_POWER=""
-			ANTENNA_GAIN=""
-			ANTENNA_HEIGHT=""
-			ANTENNA_DIR=""
-			BEACON_INTERVAL=""
-			TONE=""
-			COMMENT=""
-			{
-			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Location Infromation" --title "LocationInfo Setup" --form "LocationInfo" 20 70 0 \
-        		"APRS_SERVER_LIST:"     1 1    "$APRS_SERVER_LIST"    1 15 10 0 \
-        		"STATUS_SERVER_LIST:"   2 1    "$STATUS_SERVER_LIST"  2 15 10 0 \
-        		"LON_POSITION:"         3 1    "$LON_POSITION"        3 15 10 0 \
-        		"LAT_POSITION:"         4 1    "$LAT_POSITION"        4 15 10 0 \
-        		"CALLSIGN:"             5 1    "$CALLSIGN"            5 15 10 0 \
-        		"FREQUENCY:"            6 1    "$FREQUENCY"           6 15 10 0 \
-        		"TX_POWER:"             7 1    "$TX_POWER"            7 15 10 0 \
-        		"ANTENNA_GAIN:"         8 1    "$ANTENNA_GAIN"        8 15 10 0 \
-        		"ANTENNA_HEIGHT:"       9 1    "$ANTENNA_HEIGHT"      9 15 10 0 \
-        		"ANTENNA_DIR:"          10 1   "$ANTENNA_DIR"         10 15 10 0 \
-        		"BEACON_INTERVAL:"      11 1   "$BEACON_INTERVAL"     11 15 10 0 \
-        		"TONE:"                 12 1   "$TONE"                12 15 10 0 \
-        		"COMMENT:"              13 1   "$COMMENT"             13 15 40 0 \
-			2>&1 1>&3); } 3>&1
-			printf '%s\n' '/\[LocationInfo]/' '/APRS_SERVER_LIST=/' "s/APRS_SERVER_LIST=.*/APRS_SERVER_LIST=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/STATUS_SERVER_LIST=/' "s/STATUS_SERVER_LIST=.*/STATUS_SERVER_LIST=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/LON_POSITION=/' "s/LON_POSITION=.*/LON_POSITION=${array[2]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/LAT_POSITION=/' "s/LAT_POSITION=.*/LAT_POSITION=${array[3]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/CALLSIGN=/' "s/CALLSIGN=.*/CALLSIGN=${array[4]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/FREQUENCY=/' "s/FREQUENCY=.*/FREQUENCY=${array[5]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/TX_POWER=/' "s/TX_POWER=.*/TX_POWER=${array[6]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_GAIN=/' "s/ANTENNA_GAIN=.*/ANTENNA_GAIN=${array[7]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_HEIGHT=/' "s/ANTENNA_HEIGHT=.*/ANTENNA_HEIGHT=${array[8]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/ANTENNA_DIR=/' "s/ANTENNA_DIR=.*/ANTENNA_DIR=${array[9]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/BEACON_INTERVAL=/' "s/BEACON_INTERVAL=.*/BEACON_INTERVAL=${array[10]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/TONE=/' "s/TONE=.*/TONE=${array[11]}/" w q  | ex /etc/svxlink/svxlink.conf
-			printf '%s\n' '/\[LocationInfo]/' '/COMMENT=/' "s/COMMENT=.*/COMMENT=${array[12]}/" w q  | ex /etc/svxlink/svxlink.conf
+			set_location_info
             #Return to This Menu
             TARGETMENUID=4
             ;;
