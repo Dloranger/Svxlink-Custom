@@ -377,7 +377,7 @@ select_sounds() {
          if [[ ! -d /usr/share/svxlink/sounds/en_US ]]; then
          wget --no-check-certificate https://github.com/kb3vgw/Svxlink-sounds-en_US-laura/releases/download/15.11.2/Svxlink-sounds-en_US-laura-16k-15.11.2.tar.bz2
          tar xjvf Svxlink-sounds-en_US-laura-16k-15.11.2.tar.bz2
-         mv en_US-laura-16k /usr/share/Svxlink/sounds/en_US
+         mv en_US-laura-16k /usr/share/svxlink/sounds/en_US
          rm Svxlink-sounds-en_US-laura-16k-15.11.1.tar.bz2
          #install coutresytones
          git clone https://github.com/kb3vgw/Svxlink-Courtesy_Tones.git Courtesy_Tones
@@ -393,7 +393,7 @@ select_sounds() {
          if [[ ! -d /usr/share/svxlink/sounds/fr_FR ]]; then
          wget https://github.com/kb3vgw/svxlink-sounds-fr_FR-justine/releases/download/15.11.1/svxlink-sounds-fr_FR-justine-16k_15.11.1.tar.bz2
          tar xjvf svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
-         mv fr_FR-heather-16k /usr/share/Svxlink/sounds/fr_FR
+         mv fr_FR-heather-16k /usr/share/svxlink/sounds/fr_FR
          rm svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
          #install coutresytones
          git clone https://github.com/kb3vgw/Svxlink-Courtesy_Tones.git Courtesy_Tone
