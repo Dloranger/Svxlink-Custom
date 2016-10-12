@@ -124,10 +124,10 @@ fi
        whiptail --msgbox "This tool provides a straight-forward way of doing configuration of the Svxlink/Remotetrx Repeater Software. For Use with the SvxLINK Repeater Board. This is a always on Shell menu that will display everytime you login as the root user. I will make it a option for it to display for other users in the future. If you wish to be involved with this project. Contact: kb3vgw@gmail.com" 20 55 1
       else
 	       Menu_Exit
-		fi
-	 else
-	     Menu_Exit
-     fi
+			fi
+	  else
+			Menu_Exit
+    fi
 }
 
 Changes_Made() {
@@ -396,14 +396,14 @@ select_sounds() {
          mv fr_FR-heather-16k /usr/share/Svxlink/sounds/fr_FR
          rm svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
          #install coutresytones
-         git clone https://github.com/kb3vgw/Svxlink-Courtesy_Tones.git Courtesy_Tones
+         git clone https://github.com/kb3vgw/Svxlink-Courtesy_Tones.git Courtesy_Tone
 		 mv Courtesy_Tones /usr/share/svxlink/sounds
          #Make and Link Custome Sound Dir
-	     mkdir -p /root/sounds_fr/Custom_Courtesy_Tones
-	     ln -s /root/sounds_fr/Custom_Courtesy_Tones /usr/share/svxlink/sounds/Custom_Courtesy_Tones
-	     mkdir -p /root/sounds_fr/Custom_Identification
-	     ln -s /root/sounds_fr/Custom_identification /usr/share/svxlink/sounds/Custom_Identification
-	     fi
+		 mkdir -p /root/sounds_fr/Custom_Courtesy_Tones
+		 ln -s /root/sounds_fr/Custom_Courtesy_Tones /usr/share/svxlink/sounds/Custom_Courtesy_Tones
+		 mkdir -p /root/sounds_fr/Custom_Identification
+		 ln -s /root/sounds_fr/Custom_identification /usr/share/svxlink/sounds/Custom_Identification
+		 fi
          ;;
     esac
     fi
@@ -718,29 +718,18 @@ whiptail --msgbox "\
               " Amature Radio Repeater Interface System "
 
  Upon First Run of this script you will be asked to enter information,
-
  and you will be asked to select and install default sounds for 1 of 3
-
  currenly supported languages. English, French, and Swedish.
-
  If you wish to have you Language supported there is currently 2 options.
-
     1) use the following site and the txt files from the english sounds
        and translate and record them and forward them on.
-
        https://acapela-box.com/AcaBox/index.php
-
        Current voice now used is Laura
-
     2) Pay us to get them translated and recorded and converted into a
        sounds pkg and added to the menu script.
-
  The Menu in this install is ment to help configuring and maintining your
-
  Svxlink system easier.if you wish to contribute please feel free to
-
  contact me kb3vgw@gmail.com with any input you have that might help.
-
 " 38 80 1
 }
 
@@ -776,7 +765,7 @@ Advanced_Menu() {
 			;;
 		Update-menu)
 			git clone https://github.com/kb3vgw/Svxlink-Custom.git
-			chmod +x  Svxlink-Custom/Svxlink-Menu/Svxlink-Config 
+			chmod +x  Svxlink-Custom/Svxlink-Menu/Svxlink-Config
 			cp -r Svxlink-Custom/Svxlink-Menu/Svxlink-Config  /usr/bin
 			rm -rf Svxlink-Custom
 			printf "Sleeping 5 seconds before reloading Svxlink_Config\n" &&
@@ -1053,7 +1042,7 @@ done < /etc/svxlink/svxlink.conf
 			printf '%s\n' "/\[$OPTION]/" '/CTCSS_FQ=/' "s/CTCSS_FQ=.*/CTCSS_FQ=$selected/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' "/\[$logics]/" '/REPORT_CTCSS=/' "s/REPORT_CTCSS=.*/REPORT_CTCSS=$selected/" w q  | ex /etc/svxlink/svxlink.conf
 			Return to This Menu
-            TARGETMENUID=4
+        	TARGETMENUID=4
 			;;
  		Ctcss-Options)
 			RESTART_SVXLINK_REQUIRED=1
@@ -1146,9 +1135,9 @@ done < /etc/svxlink/svxlink.conf
             #Return to This Menu
             TARGETMENUID=4
             ;;
-            QsoRecorder)
-            	RESTART_SVXLINK_REQUIRED=1
-            	MIN_TIME=""
+      QsoRecorder)
+      	RESTART_SVXLINK_REQUIRED=1
+      	MIN_TIME=""
 				MAX_TIME=""
 				SOFT_TIME=""
 				MAX_DIRSIZE=""
@@ -1514,7 +1503,7 @@ Svxlink_Modules_Menu() {
             SvxLink_Weather_Menu
             #Return to This Menu
             TARGETMENUID=5
-            ;; 
+            ;;
       Sstv)
             RESTART_SVXLINK_REQUIRED=1
             Check_Sstv
@@ -1718,7 +1707,7 @@ Svxlink_Help_Menu() {
 
   It also is possible to retransmit DTMF digits without first activating the module. However, you will be limited to transmitting digits that  SvxLink does not interpret itself in that context. That is 0-9 and *. In idle mode, just send a command like 4<digits># \(e.g. 4123*#\).
 
-  This module is typically used on a SvxLink repeater to remote control other services via the repeater. The DTMF muting should be enabled so that received DTMF digits are not normally heard on the repeater " 
+  This module is typically used on a SvxLink repeater to remote control other services via the repeater. The DTMF muting should be enabled so that received DTMF digits are not normally heard on the repeater "
 
   25 80
             #Return to This Menu
@@ -1812,7 +1801,7 @@ Svxlink_Help_Menu() {
 		RemoteRelays-Help)
 			whiptail --msgbox "\
 			Module RemoteRelays
-			The Remote Relay Module is used with the SvxLink Repeater boards. The boards have 1 to 4 relayes depending on how many you installed when you built the board. These relays allow you to control items remotely. Like keyless door entry batteries and other onsite devices. The following dtmf commands control the the module and relays. from 1 to 8 Relay. 
+			The Remote Relay Module is used with the SvxLink Repeater boards. The boards have 1 to 4 relayes depending on how many you installed when you built the board. These relays allow you to control items remotely. Like keyless door entry batteries and other onsite devices. The following dtmf commands control the the module and relays. from 1 to 8 Relay.
 
 0# Help Module
 9# - Plays Help File
@@ -2147,7 +2136,7 @@ Echolink_Help_Menu() {
             #Return to This Menu
             TARGETMENUID=12
             ;;
-		PROXPWD) whiptail --title "PROXY_PASSWORD" --msgbox "Set the Echolink proxy password used when connecting to an Echolink proxy server. Use the password PUBLIC for public proxy servers." 25 80 1 
+		PROXPWD) whiptail --title "PROXY_PASSWORD" --msgbox "Set the Echolink proxy password used when connecting to an Echolink proxy server. Use the password PUBLIC for public proxy servers." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
@@ -2179,7 +2168,7 @@ Echolink_Help_Menu() {
             #Return to This Menu
             TARGETMENUID=12
             ;;
-		DESCRIPTION) whiptail --title "DESCRIPTION" --msgbox "A longer description that is sent to remote stations upon connection. This description should typically include detailed station information like QTH, transceiver frequency/power, antenna, CTCSS tone frequency etc." 25 80 1 
+		DESCRIPTION) whiptail --title "DESCRIPTION" --msgbox "A longer description that is sent to remote stations upon connection. This description should typically include detailed station information like QTH, transceiver frequency/power, antenna, CTCSS tone frequency etc." 25 80 1
             #Return to This Menu
             TARGETMENUID=12
             ;;
@@ -2324,7 +2313,7 @@ Svxlink_Relay_Menu() {
      		2>&1 1>&3); } 3>&1
 			# close fd
 			exec 3>&-
-			printf '%s\n' '/MOMENTARY_DELAY=/' "s/MOMENTARY_DELAY=.*/MOMENTARY_DELAY=$DELAY/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf 
+			printf '%s\n' '/MOMENTARY_DELAY=/' "s/MOMENTARY_DELAY=.*/MOMENTARY_DELAY=$DELAY/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
             #Return to This Menu
             TARGETMENUID=14
 			;;
