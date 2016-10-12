@@ -503,7 +503,7 @@ select_rxtx() {
 
 set_qso() {
 #QSO_RECORDER=8:QsoRecorder
-	option=$(set_modules)
+	#option=$(set_modules)
 	WHIP_TITLE='---------- SvxLink QSO Recorder Option ----------'
 	OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
 	"Enable_QSO" " Enable QSO Recorder " OFF \
@@ -511,11 +511,11 @@ set_qso() {
 	3>&1 1>&2 2>&3 || : )
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
-	logics=$rlogic
+	#logics=$rlogic
 	case "$OPTION" in
-		Enable_QSO)  printf '%s\n' "/\[$logics]/" '/QSO_RECORDER=/' 's/#QSO_RECORDER=.*/QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
+		Enable_QSO)  printf '%s\n' "/\[RepeaterLogic]/" '/QSO_RECORDER=/' 's/#QSO_RECORDER=.*/QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
 			;;
-		Disable_QSO)  printf '%s\n' "/\[$logics]/" '/QSO_RECORDER=/' 's/QSO_RECORDER=.*/#QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
+		Disable_QSO)  printf '%s\n' "/\[RepeaterLogic]/" '/QSO_RECORDER=/' 's/QSO_RECORDER=.*/#QSO_RECORDER=8:QsoRecorder/' w q  | ex /etc/svxlink/svxlink.conf
 			;;
 	esac
 	fi
