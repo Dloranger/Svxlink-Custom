@@ -774,6 +774,35 @@ location_info() {
 	printf '%s\n' '/\[LocationInfo]/' '/COMMENT=/' "s/COMMENT=.*/COMMENT=${array[12]}/" w q  | ex /etc/svxlink/svxlink.conf
 }
 
+set_gpsd() {
+	WHIP_TITLE='---------- Select Uart / USB Port For GPS----------'
+	OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
+	"ttyS0" " Select Uart Port 0 " OFF \
+	"ttyS1" " Select Uart Port 1 " OFF \
+	"ttyS2" " Select Uart Port 2 " OFF \
+	"ttyS3" " Select Uart Port 3 " OFF \
+	"ttyUSB0" " Select USB Port 0 " OFF \
+	"ttyUSB1" " Select USB Port 1 " OFF \
+	"ttyUSB2" " Select USB Port 2 " OFF \
+	"ttyUSB3" " Select USB Port 3 " OFF \
+	3>&1 1>&2 2>&3)
+	while read -r option; do
+	if [[ $option = @(ttyS0|ttyS1|ttyS2|ttyS3|ttyUSB0|ttyUSB1|ttyUSB2|ttyUSB3) ]]; then
+		selected+=$option,
+	else
+		whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
+		declare -p option option
+	fi
+	done <<< "$OPTION"
+	selected=${selected%,}
+	printf '%s\n' '/DEVICES=/' "s/DEVICES=.*/DEVICES=\"$selected\"/" w q | ex /etc/default/gpsd
+	touch /usr/bin/set-time.sh
+	cat > /usr/bin/set-time.sh << DELIM
+gpsdate -b 4800 /dev/$selected
+DELIM
+}
+
+
 first_run() {
 whiptail --msgbox "\
 
@@ -806,13 +835,13 @@ Advanced_Menu() {
 		"International" "Configure Keyboard TimeZone Locale" \
     	"Networking" "Configure Netorking Interfaces" \
     	"SSMTP" "Comfigure SSMTP for sending email" \
+		"Gpsd-Setup" "Enable and Configure Gpsd for GPS and Time" \
     	"Update-menu" "Update this tool to the latest version" \
     	"Update-Clock" "Update Hardware Clock" \
     	"Bash-Shell" "Drop to system command shell Bash" \
     	"Passwords" "Change Root User Passwords" \
     	"Reboot" "Reboot System" \
     	"Power-Off" "Power Off System" \
-    	"Gpsd-Setup" "Enable and Configure Gpsd for GPS and Time" \
     3>&1 1>&2 2>&3 || : )
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
@@ -864,31 +893,7 @@ Advanced_Menu() {
 			TARGETMENUID=1
 			;;
 		Gpsd-Setup)
-			WHIP_TITLE='---------- Select Uart / USB Port For GPS----------'
-			OPTION=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
-			"ttyS0" " Select Uart Port 0 " OFF \
-			"ttyS1" " Select Uart Port 1 " OFF \
-			"ttyS2" " Select Uart Port 2 " OFF \
-			"ttyS3" " Select Uart Port 3 " OFF \
-			"ttyUSB0" " Select USB Port 0 " OFF \
-			"ttyUSB1" " Select USB Port 1 " OFF \
-			"ttyUSB2" " Select USB Port 2 " OFF \
-			"ttyUSB3" " Select USB Port 3 " OFF \
-			3>&1 1>&2 2>&3)
-			while read -r option; do
-			if [[ $option = @(ttyS0|ttyS1|ttyS2|ttyS3|ttyUSB0|ttyUSB1|ttyUSB2|ttyUSB3) ]]; then
-				selected+=$option,
-			else
-				whiptail --msgbox "Programmer error: unrecognized option" 20 60 1
-				declare -p option option
-			fi
-			done <<< "$OPTION"
-			selected=${selected%,}
-			printf '%s\n' '/DEVICES=/' "s/DEVICES=.*/DEVICES=\"$selected\"/" w q | ex /etc/default/gpsd
-			touch /usr/bin/set-time.sh
-			cat > /usr/bin/set-time.sh << DELIM
-gpsdate -b 4800 /dev/$selected
-DELIM
+			set_gpsd
 			chmod +x /usr/bin/set-time.sh
 			systemctl enable gpsd
 			service gpsd start
