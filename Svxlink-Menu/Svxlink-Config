@@ -139,7 +139,7 @@ if(( RESTART_SVXLINK_REQUIRED == 1 )); then
 	CHOICE=$?
 	if (( CHOICE == 0 )); then
 		#Restart
-		service Svxlink restart
+		service svxlink restart
 		#clear restart required once answer yes
 		RESTART_SVXLINK_REQUIRED=0
 	fi
@@ -432,7 +432,7 @@ set_repeater_soundcard() {
 	local option dev rx=0 tx=0
 	WHIP_TITLE='---------- Select Repeater Sound Card ----------'
 	option=$(_whiptail)
-	if [[ $option != Cards* ]]; then
+	if [[ $option != Card* ]]; then
 		echo "back?"
 		return
 	fi
@@ -464,6 +464,14 @@ set_linkport_soundcard() {
 	dev=${option:4:1}
 	[[ ${option:6:1} = R ]] && rx=1
 	[[ ${option:7:1} = R ]] && tx=1
+    [[ ${option:6:1} = L ]] && rx=0
+    [[ ${option:7:1} = L ]] && tx=0
+    [[ ${option:8:1} = R ]] && rx=1
+    [[ ${option:9:1} = R ]] && tx=1
+    [[ ${option:10:1} = R ]] && rx=2
+    [[ ${option:11:1} = R ]] && tx=2
+    [[ ${option:12:1} = R ]] && rx=3
+    [[ ${option:13:1} = R ]] && tx=3
 	cat  <<! | ex /etc/svxlink/svxlink.conf #<<!
 /\[LinkRX\]/
 /^AUDIO_DEV=/s/.*/AUDIO_DEV=alsa:plughw:$dev/
