@@ -125,9 +125,13 @@ fi
       else
 	       Menu_Exit
 			fi
+
 	  else
+
 			Menu_Exit
+
     fi
+
 }
 
 Changes_Made() {
@@ -397,13 +401,21 @@ select_sounds() {
          rm svxlink-sounds-fr_FR-justine-16k-15.11.1.tar.bz2
          #install coutresytones
          git clone https://github.com/kb3vgw/Svxlink-Courtesy_Tones.git Courtesy_Tone
+
 		 mv Courtesy_Tones /usr/share/svxlink/sounds
+
          #Make and Link Custome Sound Dir
+
 		 mkdir -p /root/sounds_fr/Custom_Courtesy_Tones
+
 		 ln -s /root/sounds_fr/Custom_Courtesy_Tones /usr/share/svxlink/sounds/Custom_Courtesy_Tones
+
 		 mkdir -p /root/sounds_fr/Custom_Identification
+
 		 ln -s /root/sounds_fr/Custom_identification /usr/share/svxlink/sounds/Custom_Identification
+
 		 fi
+
          ;;
     esac
     fi
@@ -818,20 +830,34 @@ whiptail --msgbox "\
 
               " Amature Radio Repeater Interface System "
 
+
+
  Upon First Run of this script you will be asked to enter information,
+
  and you will be asked to select and install default sounds for 1 of 3
+
  currenly supported languages. English, French, and Swedish.
+
  If you wish to have you Language supported there is currently 2 options.
+
     1) use the following site and the txt files from the english sounds
+
        and translate and record them and forward them on.
        https://acapela-box.com/AcaBox/index.php
+
        Current voice now used is Laura
+
     2) Pay us to get them translated and recorded and converted into a
+
        sounds pkg and added to the menu script.
  The Menu in this install is ment to help configuring and maintining your
+
  Svxlink system easier.if you wish to contribute please feel free to
+
  contact me kb3vgw@gmail.com with any input you have that might help.
+
 " 38 80 1
+
 }
 
 #TARGETMENUID=1
@@ -867,6 +893,7 @@ Advanced_Menu() {
 		Update-menu)
 			git clone https://github.com/kb3vgw/Svxlink-Custom.git
 			chmod +x  Svxlink-Custom/Svxlink-Menu/Svxlink-Config
+
 			cp -r Svxlink-Custom/Svxlink-Menu/Svxlink-Config  /usr/bin
 			rm -rf Svxlink-Custom
 			printf "Sleeping 5 seconds before reloading Svxlink_Config\n" &&
@@ -1115,12 +1142,19 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 			logics=$rlogic
+
 			selected=${selected%,}
+
 			printf '%s\n' "/\[$OPTION]/" '/CTCSS_FQ=/' "s/CTCSS_FQ=.*/CTCSS_FQ=$selected/" w q  | ex /etc/svxlink/svxlink.conf
+
 			printf '%s\n' "/\[$logics]/" '/REPORT_CTCSS=/' "s/REPORT_CTCSS=.*/REPORT_CTCSS=$selected/" w q  | ex /etc/svxlink/svxlink.conf
+
 			Return to This Menu
+
         	TARGETMENUID=4
+
 			;;
+
  		Ctcss-Options)
 			RESTART_SVXLINK_REQUIRED=1
 			option=$(set_modules)
@@ -1213,8 +1247,11 @@ done < /etc/svxlink/svxlink.conf
             TARGETMENUID=4
             ;;
       QsoRecorder)
+
       	RESTART_SVXLINK_REQUIRED=1
+
       	MIN_TIME=""
+
 				MAX_TIME=""
 				SOFT_TIME=""
 				MAX_DIRSIZE=""
@@ -1364,19 +1401,33 @@ done < /etc/svxlink/svxlink.conf
 			"Tone5" " 4 up " OFF \
 			"Tone6" " apollo " OFF \
     		"Tone7" " bee boo " OFF \
+
     		"Tone8" " beep " OFF \
+
     		"Tone9" " beep 1 " OFF \
+
     		"Tone10" " beep 2 " OFF \
+
     		"Tone11" " beep 3 " OFF \
+
     		"Tone12" " beep 4 " OFF \
+
     		"Tone13" " beep 5 " OFF \
+
     		"Tone14" " beep 6 " OFF \
+
     		"Tone15" " beep 7 " OFF \
+
     		"Tone16" " beep 8 " OFF \
+
     		"Tone17" " blast off " OFF \
+
     		"Tone18" " boop " OFF \
+
     		"Tone19" " bumble bee " OFF \
+
     		"Tone20" " comet " OFF \
+
 			"Tone21" " dunce cap " OFF \
 			"Tone22" " moon bounce " OFF \
 			"Tone23" " nbc fast " OFF \
@@ -1536,6 +1587,7 @@ Svxlink_Modules_Menu() {
             #Return to This Menu
             TARGETMENUID=5
             ;;
+
       Sstv)
             RESTART_SVXLINK_REQUIRED=1
             Check_Sstv
@@ -1545,10 +1597,15 @@ Svxlink_Modules_Menu() {
             ;;
       Qso_Recorder)
    			RESTART_SVXLINK_REQUIRED=1
+
    			set_qso
+
     	    #Return to This Menu
+
         	TARGETMENUID=5
+
         	;;
+
      esac
     fi
 }
@@ -1719,9 +1776,13 @@ Svxlink_Help_Menu() {
               whiptail --msgbox "\
   Help Module
 
+
   Pressing 0# will enable the help module which you may then select a module to get help about, including the help modules. Help is provided verbally over the air. If you do not want system users to get help with DTMF commands, disable the help module.
 
+
+
   Sub Commands:
+
   0#	Overview of the Help Module
   1#	Help on Parrot Module
   2#	Help on Echolink Module
@@ -1741,6 +1802,7 @@ Svxlink_Help_Menu() {
 
   This module is typically used on a SvxLink repeater to remote control other services via the repeater. The DTMF muting should be enabled so that received DTMF digits are not normally heard on the repeater "
 
+
   25 80
             #Return to This Menu
             TARGETMENUID=9
@@ -1755,7 +1817,7 @@ Svxlink_Help_Menu() {
 
   There are a couple of subcommands that can be used when ModuleEchoLink has been activated.
 
-  Pressing 2# will enable the Echolink Module. The EcholinkÃƒâ€šÃ‚Â® network allows licensed Amateur Radio stations to communicate with one another over the Internet using VOIP technology. This module allows worldwide connections to be made between other repeaters or to individuals using Echolink nodes.
+  Pressing 2# will enable the Echolink Module. The EcholinkÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â® network allows licensed Amateur Radio stations to communicate with one another over the Internet using VOIP technology. This module allows worldwide connections to be made between other repeaters or to individuals using Echolink nodes.
 
   9999# - Connect to Echolink by Node ID. (Node 9999 is ECHOTEST)
   #	- Disconnect from last connected station
@@ -1834,6 +1896,7 @@ Svxlink_Help_Menu() {
 			whiptail --msgbox "\
 			Module RemoteRelays
 			The Remote Relay Module is used with the SvxLink Repeater boards. The boards have 1 to 4 relayes depending on how many you installed when you built the board. These relays allow you to control items remotely. Like keyless door entry batteries and other onsite devices. The following dtmf commands control the the module and relays. from 1 to 8 Relay.
+
 
 0# Help Module
 9# - Plays Help File
@@ -2169,6 +2232,7 @@ Echolink_Help_Menu() {
             TARGETMENUID=12
             ;;
 		PROXPWD) whiptail --title "PROXY_PASSWORD" --msgbox "Set the Echolink proxy password used when connecting to an Echolink proxy server. Use the password PUBLIC for public proxy servers." 25 80 1
+
             #Return to This Menu
             TARGETMENUID=12
             ;;
@@ -2201,6 +2265,7 @@ Echolink_Help_Menu() {
             TARGETMENUID=12
             ;;
 		DESCRIPTION) whiptail --title "DESCRIPTION" --msgbox "A longer description that is sent to remote stations upon connection. This description should typically include detailed station information like QTH, transceiver frequency/power, antenna, CTCSS tone frequency etc." 25 80 1
+
             #Return to This Menu
             TARGETMENUID=12
             ;;
@@ -2346,6 +2411,7 @@ Svxlink_Relay_Menu() {
 			# close fd
 			exec 3>&-
 			printf '%s\n' '/MOMENTARY_DELAY=/' "s/MOMENTARY_DELAY=.*/MOMENTARY_DELAY=$DELAY/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
+
             #Return to This Menu
             TARGETMENUID=14
 			;;
@@ -2472,4 +2538,5 @@ while (( TARGETMENUID > -1 )); do
 done
 exit
 }
-}
+}
+
