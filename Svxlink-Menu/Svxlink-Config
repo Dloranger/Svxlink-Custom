@@ -129,9 +129,7 @@ fi
 	  else
 
 			Menu_Exit
-
     fi
-
 }
 
 Changes_Made() {
@@ -1142,19 +1140,12 @@ declare -A config=()
     config[$section.$key]=$value
 done < /etc/svxlink/svxlink.conf
 			logics=$rlogic
-
 			selected=${selected%,}
-
 			printf '%s\n' "/\[$OPTION]/" '/CTCSS_FQ=/' "s/CTCSS_FQ=.*/CTCSS_FQ=$selected/" w q  | ex /etc/svxlink/svxlink.conf
-
 			printf '%s\n' "/\[$logics]/" '/REPORT_CTCSS=/' "s/REPORT_CTCSS=.*/REPORT_CTCSS=$selected/" w q  | ex /etc/svxlink/svxlink.conf
-
 			Return to This Menu
-
         	TARGETMENUID=4
-
 			;;
-
  		Ctcss-Options)
 			RESTART_SVXLINK_REQUIRED=1
 			option=$(set_modules)
@@ -1247,28 +1238,25 @@ done < /etc/svxlink/svxlink.conf
             TARGETMENUID=4
             ;;
       QsoRecorder)
-
-      	RESTART_SVXLINK_REQUIRED=1
-
-      	MIN_TIME=""
-
-				MAX_TIME=""
-				SOFT_TIME=""
-				MAX_DIRSIZE=""
-				DEFAULT_ACTIVE=""
-				TIMEOUT=""
-				QSO_TIMEOUT=""
-				ENCODER_CMD=$(/usr/bin/oggenc -Q \"%f\" && rm \"%f\")
-				{
-				mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Qso Recorder Configuration" --title "QsoRecorder Setup" --form "QsoRecorder" 20 70 0 \
-        			"MIN_TIME:"          1 1    "$MIN_TIME"           1 15 10 0 \
-        			"MAX_TIME:"          2 1    "$MAX_TIME"           2 15 10 0 \
-        			"SOFT_TIME:"         3 1    "$SOFT_TIME"          3 15 10 0 \
-        			"MAX_DIRSIZE:"       4 1    "$MAX_DIRSIZE"        4 15 10 0 \
-        			"DEFAULT_ACTIVE:"    5 1    "$DEFAULT_ACTIVE"     5 15 10 0 \
-        			"TIMEOUT:"           6 1    "$TIMEOUT"            6 15 10 0 \
-        			"QSO_TIMEOUT:"       7 1    "$QSO_TIMEOUT"        7 15 10 0 \
-        			"ENCODER_CMD:"       8 1    "$ENCODER_CMD"        8 15 10 0 \
+	      	RESTART_SVXLINK_REQUIRED=1
+	      	MIN_TIME=""
+			MAX_TIME=""
+			SOFT_TIME=""
+			MAX_DIRSIZE=""
+			DEFAULT_ACTIVE=""
+			TIMEOUT=""
+			QSO_TIMEOUT=""
+			ENCODER_CMD=$(/usr/bin/oggenc -Q \"%f\" && rm \"%f\")
+			{
+			mapfile -t array < <(dialog --ok-label "Submit" --backtitle "Qso Recorder Configuration" --title "QsoRecorder Setup" --form "QsoRecorder" 20 70 0 \
+       			"MIN_TIME:"          1 1    "$MIN_TIME"           1 15 10 0 \
+       			"MAX_TIME:"          2 1    "$MAX_TIME"           2 15 10 0 \
+       			"SOFT_TIME:"         3 1    "$SOFT_TIME"          3 15 10 0 \
+       			"MAX_DIRSIZE:"       4 1    "$MAX_DIRSIZE"        4 15 10 0 \
+       			"DEFAULT_ACTIVE:"    5 1    "$DEFAULT_ACTIVE"     5 15 10 0 \
+       			"TIMEOUT:"           6 1    "$TIMEOUT"            6 15 10 0 \
+       			"QSO_TIMEOUT:"       7 1    "$QSO_TIMEOUT"        7 15 10 0 \
+       			"ENCODER_CMD:"       8 1    "$ENCODER_CMD"        8 15 10 0 \
 			2>&1 1>&3); } 3>&1
 			printf '%s\n' '/\[QsoRecorder]/' '/MIN_TIME=/' "s/#MIN_TIME=.*/MIN_TIME=${array[0]}/" w q  | ex /etc/svxlink/svxlink.conf
 			printf '%s\n' '/\[QsoRecorder]/' '/MAX_TIME=/' "s/MAX_TIME=.*/MAX_TIME=${array[1]}/" w q  | ex /etc/svxlink/svxlink.conf
@@ -1401,33 +1389,19 @@ done < /etc/svxlink/svxlink.conf
 			"Tone5" " 4 up " OFF \
 			"Tone6" " apollo " OFF \
     		"Tone7" " bee boo " OFF \
-
     		"Tone8" " beep " OFF \
-
     		"Tone9" " beep 1 " OFF \
-
     		"Tone10" " beep 2 " OFF \
-
     		"Tone11" " beep 3 " OFF \
-
     		"Tone12" " beep 4 " OFF \
-
     		"Tone13" " beep 5 " OFF \
-
     		"Tone14" " beep 6 " OFF \
-
     		"Tone15" " beep 7 " OFF \
-
     		"Tone16" " beep 8 " OFF \
-
     		"Tone17" " blast off " OFF \
-
     		"Tone18" " boop " OFF \
-
     		"Tone19" " bumble bee " OFF \
-
     		"Tone20" " comet " OFF \
-
 			"Tone21" " dunce cap " OFF \
 			"Tone22" " moon bounce " OFF \
 			"Tone23" " nbc fast " OFF \
@@ -1587,7 +1561,6 @@ Svxlink_Modules_Menu() {
             #Return to This Menu
             TARGETMENUID=5
             ;;
-
       Sstv)
             RESTART_SVXLINK_REQUIRED=1
             Check_Sstv
@@ -1597,15 +1570,10 @@ Svxlink_Modules_Menu() {
             ;;
       Qso_Recorder)
    			RESTART_SVXLINK_REQUIRED=1
-
    			set_qso
-
     	    #Return to This Menu
-
         	TARGETMENUID=5
-
         	;;
-
      esac
     fi
 }
@@ -1776,10 +1744,7 @@ Svxlink_Help_Menu() {
               whiptail --msgbox "\
   Help Module
 
-
   Pressing 0# will enable the help module which you may then select a module to get help about, including the help modules. Help is provided verbally over the air. If you do not want system users to get help with DTMF commands, disable the help module.
-
-
 
   Sub Commands:
 
@@ -1801,7 +1766,6 @@ Svxlink_Help_Menu() {
   It also is possible to retransmit DTMF digits without first activating the module. However, you will be limited to transmitting digits that  SvxLink does not interpret itself in that context. That is 0-9 and *. In idle mode, just send a command like 4<digits># \(e.g. 4123*#\).
 
   This module is typically used on a SvxLink repeater to remote control other services via the repeater. The DTMF muting should be enabled so that received DTMF digits are not normally heard on the repeater "
-
 
   25 80
             #Return to This Menu
