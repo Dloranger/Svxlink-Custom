@@ -222,11 +222,11 @@ Config-GPIO() {
 RESTART_SVXLINK_REQUIRED=1
 WHIP_TITLE1='---------- Select Repeater Boards ----------'
 OPTION1=$(whiptail --separate-output --title "$WHIP_TITLE1" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
-"Svxlink_Board" "SvxLink Repeater Board" off \
-"Arris_Board" "Arris basic interface board" off \
+"Svxlink_Extended" "SvxLink Entxended Board" off \
+"Svxlink_Basic" "SvxLink Basic board" off \
 3>&1 1>&2 2>&3 || : )
 while read -r option1; do
-    if [[ $option1 = @(Svxlink_Board|Arris_Board) ]]; then
+    if [[ $option1 = @(Svxlink_Board|SVXLink_Board) ]]; then
       selected=$option1
     else
       whiptail --msgbox "Programmer error: unrecognized options" 20 60 1
@@ -253,7 +253,7 @@ while read -r option2; do
    done <<< "$OPTION2"
 selected2=${selected%}
 
-if [[ $selected1 == Svxlink_Board ]] ; then
+if [[ $selected1 == Svxlink_Extended ]] ; then
 if [[ $selected2 == rpi2 ]] || [[ $selected == rpi3 ]] ; then
 #configure pi gpio
 	printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"5 6 7 13 24 25 26 27\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
@@ -268,11 +268,11 @@ if [[ $selected2 == rpi2 ]] || [[ $selected == rpi3 ]] ; then
 	printf '%s\n' '/GPIO_RELAY_2=/' "s/GPIO_RELAY_2=.*/GPIO_RELAY_2=21/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
 	printf '%s\n' '/GPIO_RELAY_3=/' "s/GPIO_RELAY_3=.*/GPIO_RELAY_3=22/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
 	printf '%s\n' '/GPIO_RELAY_4=/' "s/GPIO_RELAY_4=.*/GPIO_RELAY_4=23/" w q | ex /etc/svxlink/svxlink.d/ModuleRemoteRelay.conf
-	touch /etc/svxlink/.svxboard
+	touch /etc/svxlink/.extended
 fi
 fi
 
-if [[ $selected1 == Arris_Board ]] ; then
+if [[ $selected1 == Svxlink_Basic ]] ; then
 if [[ $selected2 == rpi2 ]] || [[ $selected == rpi3 ]] || [[ $selected == pine64 ]] ; then
 #configure pi gpio
 	printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"7 24\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
@@ -283,20 +283,20 @@ if [[ $selected2 == rpi2 ]] || [[ $selected == rpi3 ]] || [[ $selected == pine64
 	printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio16/" w q | ex /etc/svxlink/svxlink.conf
 	printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio18/" w q | ex /etc/svxlink/svxlink.conf
 	printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio17/" w q | ex /etc/svxlink/svxlink.conf
-	touch /etc/svxlink/.arris
+	touch /etc/svxlink/.basic
 fi
 
 if [[ $selected2 == odroid-c1 ]] ; then
 #configure odroid c1/c1+ gpio
 	printf '%s\n' '/GPIO_IN_HIGH=/' "s/GPIO_IN_HIGH=.*/GPIO_IN_HIGH=\"87 102\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
 	printf '%s\n' '/GPIO_IN_LOW=/' "s/GPIO_IN_LOW=.*/GPIO_IN_LOW=\"87 102\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
-	printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"88 104\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
+	printf '%s\n' '/GPIO_OUT_HIGH=/' "s/GPIO_OUT_HIGH=.*/GPIO_OUT_HIGH=\"103 104\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
 	printf '%s\n' '/GPIO_OUT_LOW=/' "s/GPIO_OUT_LOW=.*/GPIO_OUT_LOW=\"\"/" w q | ex /etc/svxlink/svxlink_gpio.conf
 	printf '%s\n' '/\[Rx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio104/" w q | ex /etc/svxlink/svxlink.conf
 	printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio102/" w q | ex /etc/svxlink/svxlink.conf
-	printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio88/" w q | ex /etc/svxlink/svxlink.conf
+	printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio103/" w q | ex /etc/svxlink/svxlink.conf
 	printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio87/" w q | ex /etc/svxlink/svxlink.conf
-	touch /etc/svxlink/.arris
+	touch /etc/svxlink/.basic
 fi
 
 if [[ $selected2 == odroid-c2 ]] ; then
@@ -309,7 +309,7 @@ if [[ $selected2 == odroid-c2 ]] ; then
 	printf '%s\n' '/\[Tx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio247/" w q | ex /etc/svxlink/svxlink.conf
 	printf '%s\n' '/\[LinkRx1\]/' '/GPIO_SQL_PIN=gpio/' "s/GPIO_SQL_PIN=gpio.*/GPIO_SQL_PIN=gpio233/" w q | ex /etc/svxlink/svxlink.conf
 	printf '%s\n' '/\[LinkTx1\]/' '/PTT_PIN=gpio/' "s/PTT_PIN=gpio.*/PTT_PIN=gpio/236" w q | ex /etc/svxlink/svxlink.conf
-	touch /etc/svxlink/.arris
+	touch /etc/svxlink/.basic
 fi
 fi
 }
