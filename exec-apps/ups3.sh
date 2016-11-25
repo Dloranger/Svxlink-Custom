@@ -23,23 +23,36 @@ gpio_setvalue()
         echo $2 > "$SYSFS_GPIO_DIR/gpio$1/value"
 }
 
+if test $MODEL = "BCM2709" #Raspi2
+then
+        AC_OK_GPIO=17
+        BAT_OK_GPIO=27
+	    LATCH_GPIO=22
+	gpio_export $LATCH_GPIO
+	gpio_setvalue $LATCH_GPIO 1
+elif test $MODEL = "BCM2837"
+then
+        AC_OK_GPIO=17
+        BAT_OK_GPIO=27
+	    LATCH_GPIO=22
+	gpio_export $LATCH_GPIO
+	gpio_setvalue $LATCH_GPIO 1
+fi	
+
 if test $MODEL = "ODROIDC"
 then
         AC_OK_GPIO=88
         BAT_OK_GPIO=116
-	LATCH_GPIO=115
+	    LATCH_GPIO=115
 	gpio_export $LATCH_GPIO
 	gpio_setvalue $LATCH_GPIO 1
 elif test $MODEL = "ODROID-C2"
 then
         AC_OK_GPIO=247
         BAT_OK_GPIO=239
-	LATCH_GPIO=225
+	    LATCH_GPIO=225
 	gpio_export $LATCH_GPIO
 	gpio_setvalue $LATCH_GPIO 1
-else
-        AC_OK_GPIO=199
-        BAT_OK_GPIO=200
 fi
 
 gpio_export $AC_OK_GPIO
