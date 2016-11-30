@@ -504,13 +504,13 @@ cat  <<! | ex /etc/svxlink/svxlink.conf #<<!
 /\[LinkTx\]/
 /^AUDIO_DEV=/s/.*/AUDIO_DEV=alsa:plughw:$dev/
 /\[LinkTx\]/
-/^AUDIO_CHANNEL=/s/.*/AUDIO_CHANNEL=$tx/
-w
 q
 !
 }
 
 select_rxtx() {
+/^AUDIO_CHANNEL=/s/.*/AUDIO_CHANNEL=$tx/
+w
 	WHIP_TITLE='---------- Select if CTCSS is for RX ot TX port ----------'
 	OPT1=$(whiptail --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \
  	"Rx1" " Select Reciever 1 Port" OFF \
@@ -667,7 +667,7 @@ set_modules() {
 select_modules(){
 	WHIP_TITLE='---------- Enable\/Disable SvxLink Modules ----------'
 	option=$(set_modules)
-	OPTION=$(whiptail --separate-outpu                                                                                                                                                                                                         t --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
+	OPTION=$(whiptail --separate-output --title "$WHIP_TITLE" --radiolist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 20 50 10 \                                                                                                                                                                                         t --title "$WHIP_TITLE" --checklist "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" 15 65 10 \
 	"ModuleHelp" "Help Module" ON \
 	"ModuleParrot" "Parrot Module" ON  \
 	"ModuleEchoLink" "Echolink Module" OFF \
@@ -1112,8 +1112,8 @@ Svxlink_Main_Menu() {
 Svxlink_Config_Menu() {
 	TARGETMENUID=0
 	OPTION=$(whiptail --title "$WHIP_TITLE" --menu "Make a Selection" --cancel-button "$TEXT_MENU_BACK" --backtitle "$WHIP_BACKTITLE" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" \
-	    "Rptr_Logic" "Select Repeate rLogics to use' \
-	    "Cfg_Gpio" "Setup Repeater Card GPIO' \
+	    "Rptr_Logic" "Select Repeate rLogics to use" \
+	    "Cfg_Gpio" "Setup Repeater Card GPIO" \
 		"CallSign" "Set/Change Repeater Call Sign" \
 		"Modules" "Enable/Disable SvxLink Modules" \
 		"Language" "Set/Select SxvLink Default Language" \
