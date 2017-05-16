@@ -23,7 +23,7 @@ serial_port.open()
 
    
 
-callsign = 'F1ZBV'
+callsign = ''
 cmd=''
 tx=''
 rx=''
