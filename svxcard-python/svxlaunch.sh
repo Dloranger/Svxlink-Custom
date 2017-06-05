@@ -1,1 +1,1 @@
-sudo svxlink  --logfile=/var/log/svxlink 
+sudo service svxlink start
